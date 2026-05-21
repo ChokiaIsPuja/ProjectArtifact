@@ -13,6 +13,7 @@ if ($_SESSION['username'] != true) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="asset/css/bootstrap.min.css">
+    <link rel="stylesheet" href="asset/css/preloader.css">
     <title>Ro-Golike</title>
     <style>
         body {
@@ -36,43 +37,46 @@ if ($_SESSION['username'] != true) {
 </head>
 
 <body class="d-flex align-items-center justify-content-center min-vh-100">
+<div id="preloader">
+  <img src="asset/img/loading.png" alt="Loading..." class="preloader-image">
+</div>
 
-    <div class="container text-center">
-        <h2 style="color: #fff;">Welcome, <?php echo $_SESSION['username']; ?>!</h2>
-        <div class="row">
-            <div class="col-12">
-                <h1 class="text-white" style="font-size: 50px;">ProjectArtifact</h1>
+        <div class="container text-center" style="border:none;">
+            <h2 style="color: #fff;">Welcome, <?php echo $_SESSION['username']; ?>!</h2>
+            <div class="row">
+                <div class="col-12">
+                    <h1 class="text-white" style="font-size: 50px;">ProjectArtifact</h1>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-12 mt-3">
-                <button type="button" class="btn btn-primary" id="loadGameButton" data-toggle="modal" data-target="#loadModal" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;">
-                    Begin / Continue
-                </button>
+            <div class="row">
+                <div class="col-12 mt-3">
+                    <button type="button" onfocus="this.style.boxShadow='none';" class="btn btn-primary" id="loadGameButton" data-toggle="modal" data-target="#loadModal" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;">
+                        Begin / Continue
+                    </button>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-12 mt-3">
-                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;" id="newGameButton">
-                    Create Character
-                </button>
+            <div class="row">
+                <div class="col-12 mt-3">
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;" id="newGameButton">
+                        Create Character
+                    </button>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-12 mt-3">
-                <a href="how_to_play.php"><button class="btn btn-primary" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;" id="howToPlayButton">How To Play</button></a>
+            <div class="row">
+                <div class="col-12 mt-3">
+                    <a href="how_to_play.php"><button class="btn btn-primary" onfocus="this.style.boxShadow='none';" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;" id="howToPlayButton">How To Play</button></a>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-12 mt-3">
-                <a href="https://github.com/ChokiaIsPuja/ProjectArtifact"><button class="btn btn-primary" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;" id="creditsButton">Credits</button></a>
+            <div class="row">
+                <div class="col-12 mt-3">
+                    <a href="https://github.com/ChokiaIsPuja/ProjectArtifact"><button class="btn btn-primary" onfocus="this.style.boxShadow='none';" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;" id="creditsButton">Credits</button></a>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-12 mt-3">
-                <a href="logout.php" class="btn btn-danger" style="width: 400px;">Logout</a>
+            <div class="row">
+                <div class="col-12 mt-3">
+                    <a href="logout.php" class="btn btn-danger" style="width: 400px;">Logout</a>
+                </div>
             </div>
-        </div>
         <footer class="mt-auto">
             <div class="row mt-5">
                 <div class="col-12">
@@ -80,7 +84,7 @@ if ($_SESSION['username'] != true) {
                         &copy; 2026 ProjectArtifact by Chokia.
                         All rights reserved.
                     </p>
-                    <p style="color: white;">version pre-release 0.0.1</p>
+                    <p style="color: white;">pre-pre-pre-alpha v0.0.1</p>
                 </div>
             </div>
         </footer>
@@ -275,7 +279,7 @@ if ($_SESSION['username'] != true) {
                                                                     </div>
                                                                     <div class="col-4 d-flex align-items-center justify-content-center">
                                                                         <?php if ($row1['level'] > 1): ?>
-                                                                            <a href="in-game/presistent_sidebar.php?p=level1&id=<?= $row1['player_id'] ?>"
+                                                                            <a href="in-game/index.php?p=level1&id=<?= $row1['player_id'] ?>"
                                                                                 class="btn btn-primary d-flex align-items-center justify-content-center w-75"
                                                                                 style="height: 50px; line-height: 50px; background-color: #b45b5b; border: none; padding: 0;">
                                                                                 <span class="m-0">Continue</span>
@@ -375,6 +379,35 @@ if ($_SESSION['username'] != true) {
             // initialize
             $('#beginButton').prop('disabled', true);
         });
+        function startPreloaderExit() {
+            $('#preloader').addClass('loaded');
+            $('body').addClass('page-ready');
+            $('#preloader').one('animationend', function(e) {
+                if (e.originalEvent.animationName === 'slideUp') {
+                    $(this).remove();
+                }
+            });
+        }
+
+        var preloaderPageReady = false;
+        var preloaderDownDone = false;
+
+        function checkPreloaderExit() {
+            if (preloaderPageReady && preloaderDownDone) {
+                setTimeout(startPreloaderExit, 400);
+            }
+        }
+
+        setTimeout(function() {
+            preloaderDownDone = true;
+            checkPreloaderExit();
+        }, 700);
+
+        window.addEventListener('load', function() {
+            preloaderPageReady = true;
+            checkPreloaderExit();
+        });
+
     </script>
     
 </body>
