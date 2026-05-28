@@ -1,6 +1,4 @@
-<? include __DIR__ . '/conn.php';
-session_start();
-
+<?php include '../conn.php';
 
 if(empty($_GET['p'])){
     header("location:content.php?p=level1");
@@ -10,6 +8,6 @@ if(empty($_GET['p'])){
     $content =  __DIR__ . '/level2.php';
 } else if($_GET['p'] == "level3"){
     $content =  __DIR__ . '/level3.php';
-} else {
+}else {
     header("location:content.php?p=level1");
 }

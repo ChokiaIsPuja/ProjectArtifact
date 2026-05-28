@@ -70,146 +70,114 @@ if ($row) {
         <style>
             /* Prevents the sidebar layout context from squishing content wrapper zones */
             .workspace-content {
-                margin-left: 300px;
+                margin-left: 320px;
                 /* Gives 20px padding away from your 250px wide nav menu */
                 padding-top: 20px;
             }
         </style>
     </head>
 
-    <body class="bg-secondary">
+    <body class="bg-dark" style="font-family: 'Jaro', sans-serif; font-weight: 400; background-color: #805138;">
         <div id="preloader">
             <img src="../asset/img/loading.png" alt="Loading..." class="preloader-image">
         </div>
-        <nav class="text-white position-fixed p-3" style="height: 100vh; width: 300px; top: 0; left: 0; z-index: 1000; background-color: #b45b5b; ">
-            <h1 class="h5 text-center mt-2 fw-bold mb-4">Equipments</h1>
+        <nav class="text-white position-fixed p-3"
+            style="height: calc(100vh - 30px); width: 300px; top: 15px; left: 15px; z-index: 1000; background-color: #D39670;">
 
-            <div class="container-fluid mt-3 px-2" style="background-color: #b45b5b;">
-                <!-- IMAGES ARE PLACEHOLDER -->
-                <div class="row g-2 mb-3 text-center">
-                    <div class="col-12">
-                        <a style="text-decoration: none;" href="#">
-                            <div class="card d-flex flex-column justify-content-end p-2 w-100" style="height: 120px;background-color: #FAC79B;">
-                                <img src="../asset/img/inventory.png" alt="Inventory" class="mx-auto" style="max-width: 80px; max-height: 80px;">
-                                <p style="margin: 0;" class="text-center small fw-bold text-dark">
-                                    Inventory
-                                </p>
-                            </div>
-                        </a>
-                    </div>
+            <h1 class="h5 text-center" style="font-size: 30px; margin-top:15px; margin-bottom: 30px;">Equipments</h1>
+
+            <div class="container-fluid mt-2 px-2" style="background-color: #D39670;">
+                
+                <div class="d-flex justify-content-between mb-3" style="gap: 14px;">
+                    <a style="text-decoration: none; flex: 1;" href="#">
+                        <div class="card d-flex flex-column justify-content-end pt-3" style="height: 120px; background-color: #FAC79B; border: none;border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                            <img src="../asset/img/helmet.png" alt="Helmet" class="mx-auto" style="max-width: 80px; max-height: 80px;">
+                            <p class="m-0 pb-1 text-center small fw-bold text-dark">Helmet</p>
+                        </div>
+                    </a>
+
+                    <a style="text-decoration: none; flex: 1;" href="#">
+                        <div class="card d-flex flex-column justify-content-end pt-3" style="height: 120px; background-color: #FAC79B; border: none;border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                            <img src="../asset/img/armor.png" alt="Armor" class="mx-auto" style="max-width: 80px; max-height: 80px;">
+                            <p class="m-0 pb-1 text-center small fw-bold text-dark">Armor</p>
+                        </div>
+                    </a>
                 </div>
 
-                <div class="row g-2 mb-2 text-center">
-                    <div class="col-6">
-                        <a style="text-decoration: none;" href="#">
-                            <div class="card d-flex flex-column justify-content-end p-2 h-100" style="height: 120px;background-color: #FAC79B;">
-                                <img src="../asset/img/helmet.png" alt="Helmet" class="mx-auto" style="max-width: 80px; max-height: 80px;">
-                                <p class="m-0 text-center small fw-bold text-dark">
-                                    Helmet
-                                </p>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a style="text-decoration: none;" href="#">
-                            <div class="card d-flex flex-column justify-content-end p-2 h-100" style="height: 120px;background-color: #FAC79B;">
-                                <img src="../asset/img/armor.png" alt="Armor" class="mx-auto" style="max-width: 80px; max-height: 80px;">
-                                <p class="m-0 text-center small fw-bold text-dark">
-                                    Armor
-                                </p>
-                            </div>
-                        </a>
-                    </div>
+                <div class="d-flex justify-content-between mb-3" style="gap: 14px;">
+                    <a style="text-decoration: none; flex: 1;" href="#">
+                        <div class="card d-flex flex-column justify-content-end pt-3" style="height: 120px; background-color: #FAC79B; border: none;border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                            <img src="../asset/img/boots.png" alt="Boots" class="mx-auto" style="max-width: 80px; max-height: 80px;">
+                            <p class="m-0 pb-1 text-center small fw-bold text-dark">Boots</p>
+                        </div>
+                    </a>
+
+                    <a style="text-decoration: none; flex: 1;" href="#">
+                        <div class="card d-flex flex-column justify-content-end pt-3" style="height: 120px; background-color: #FAC79B; border: none;border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                            <img src="../asset/img/accessory.webp" alt="Accessory" class="mx-auto" style="max-width: 80px; max-height: 80px;">
+                            <p class="m-0 pb-1 text-center small fw-bold text-dark">Accessory</p>
+                        </div>
+                    </a>
                 </div>
 
-                <div class="row g-2 text-center">
-                    <div class="col-6">
-                        <a style="text-decoration: none;" href="#">
-                            <div class="card d-flex flex-column justify-content-end p-2 h-100" style="height: 120px;background-color: #FAC79B;">
-                                <img src="../asset/img/boots.png" alt="Boots" class="mx-auto" style="max-width: 80px; max-height: 80px;">
-                                <p class="m-0 text-center small fw-bold text-dark">
-                                    Boots
-                                </p>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a class="text-decoration-none" href="#">
-                            <div class="card d-flex flex-column justify-content-end p-2 h-100" style="height: 120px;background-color: #FAC79B;">
-                                <img src="../asset/img/accessory.webp" alt="Accessory" class="mx-auto" style="max-width: 80px; max-height: 80px;">
-                                <p class="m-0 text-center small fw-bold text-dark">
-                                    Accessory
-                                </p>
-                            </div>
-                        </a>
-                    </div>
-                </div>
-                <div class="row g-2 mb-3 text-center">
+                <div class="row g-3 mb-3 text-center">
                     <div class="col-12">
                         <a class="text-decoration-none" href="#">
-                            <div class="card d-flex flex-column justify-content-end p-2 w-100" style="height: 120px; margin-top: 10px;background-color: #FAC79B;">
+                            <div class="card d-flex flex-column justify-content-end pt-2 w-100" style="height: 120px; background-color: #FAC79B;border-radius: 12px; border: none; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
                                 <img src="../asset/img/weapon.png" alt="Weapon" class="mx-auto" style="max-width: 220px; max-height: 80px; margin:0;">
-                                <p style="margin: 0;" class="text-center small fw-bold text-dark">
-                                    Armaments
-                                </p>
+                                <p style="margin: 0;" class="text-center small fw-bold text-dark">Armaments</p>
                             </div>
                         </a>
-
                     </div>
                 </div>
-                <div class="row g-2 mb-3 text-center">
-                    <div class="col-12">
-                        <div class="card p-0 w-100 overflow-hidden"
-                            style="height: 240px; position: relative; border:none;">
 
+                <div class="row g-3 mb-3 text-center">
+                    <div class="col-12">
+                        <div class="card p-0 w-100 overflow-hidden" style="height: 300px; position: relative; border: none; border-radius: 12px;">
                             <img src="../asset/sprites/classes/<?= htmlspecialchars($row['avatar']) ?>"
                                 alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; display: block; image-rendering: pixelated;">
-                            <div style="position: absolute;left: 0;bottom: 0;width: 100%;background: rgba(255, 255, 255, 0);padding: 4px 0; margin-top:120px">
-                                <p class="m-0 text-center fw-bold" style="font-size: 20px; color:white;background-color:rgb(226, 73, 73);">
+
+                            <div style="position: absolute; left: 0; bottom: 0; width: 100%; padding: 10px; z-index: 5;">
+                                <p class="m-0 text-left fw-bold outlined-text" style="font-size: 24px; color: white; text-align: left;">
                                     <?= htmlspecialchars($row['name'] ?? 'Hero') ?>
                                 </p>
+                                <div class="progress" style="height: 20px; border-radius: 5px; border: 2px solid #B46940">
+                                    <?php $hp_percentage = ($max_hp > 0) ? ($current_hp / $max_hp) * 100 : 0; ?>
+                                    <div class="progress-bar bg-danger"
+                                        role="progressbar"
+                                        style="width: <?= $hp_percentage ?>%; transition: width 0.4s ease;"
+                                        aria-valuenow="<?= htmlspecialchars($current_hp) ?>"
+                                        aria-valuemin="0"
+                                        aria-valuemax="<?= htmlspecialchars($max_hp) ?>">
+                                    </div>
+                                </div>
+                                <p class="text-right small text-white fw-bold mt-1 mb-0 outlined-text-small" style="font-size: 18px; text-align: right;">
+                                    <?= htmlspecialchars($current_hp) ?> / <?= htmlspecialchars($max_hp) ?>
+                                </p>
                             </div>
-
                         </div>
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-12">
-                        <div class="progress" style="height: 20px;">
-
-                            <?php
-                            // Calculate the percentage safely, avoiding a division by zero error if data drops
-                            $hp_percentage = ($max_hp > 0) ? ($current_hp / $max_hp) * 100 : 0;
-                            ?>
-
-                            <div class="progress-bar bg-danger"
-                                role="progressbar"
-                                style="width: <?= $hp_percentage ?>%; transition: width 0.4s ease;"
-                                aria-valuenow="<?= htmlspecialchars($current_hp) ?>"
-                                aria-valuemin="0"
-                                aria-valuemax="<?= htmlspecialchars($max_hp) ?>">
-                            </div>
-
-                        </div>
-
-                        <p class="text-center small text-white fw-bold mt-1 mb-0" style="text-shadow: 1px 1px 2px black;">
-                            HP: <?= htmlspecialchars($current_hp) ?> / <?= htmlspecialchars($max_hp) ?>
-
-                        </p>
+                    <div class="col-6">
+                        <a href="#" class="btn btn-dark w-100" style="background-color: #FAC79B; border:none; color:#B46940">Inventory</a>
+                    </div>
+                    <div class="col-6">
+                        <a href="#" class="btn btn-dark w-100" style="background-color: #FAC79B; border:none; color:#B46940">Stats</a>
                     </div>
                 </div>
+                <hr class="mt-3" style="border-top: 1px solid #ffe59e;">
             </div>
         </nav>
-
         <div class="container-lg workspace-content px-3 d-flex flex-column" style="height: 100vh; overflow: hidden; max-width: 100rem;">
             <div class="row flex-grow-1 mb-3" style="min-height: 0;">
                 <div class="col-12 h-100">
-                    <div class="p-3 bg-light rounded-3 shadow-sm h-100"
-                        style="overflow-y: auto; overflow-x: hidden;">
+                    <div class="p-3 rounded-3 shadow-sm h-100"
+                        style="overflow-y: auto; overflow-x: hidden;  background-color:#D39670;">
 
                     <?php
-                    include "pages/content.php";
-                }
+                    include __DIR__ . '/pages/content.php';
+                }   include $content;
                 // DO NOT MOVE THIS, IT IS FOR THE HEALTH CHECK SO IT DOESNT OVERFLOW
                     ?>
                     </div>

@@ -4,6 +4,35 @@
  * Copyright 2011-2022 Twitter, Inc.
  * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
  */
+
+
+@import url('https://fonts.googleapis.com/css2?family=Jaro:opsz@6..72&display=swap');
+
+body {
+  font-family: "Jaro", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.outlined-text {
+  /* thickness color */
+  font-size: 32px !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+  -webkit-text-stroke: 1.2px #B46940;
+  color: white; /* fill color */
+}
+
+.outlined-text-small {
+  /* thickness color */
+  font-size: 20px !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+  -webkit-text-stroke: 1px #B46940;
+  color: white; /* fill color */
+}
+
 :root {
   --blue: #007bff;
   --indigo: #6610f2;
@@ -6834,7 +6863,7 @@ button.bg-warning:focus {
 }
 
 .bg-danger {
-  background-color: #dc3545 !important;
+  background-color: #ADDEA9 !important;
 }
 
 a.bg-danger:hover, a.bg-danger:focus,
