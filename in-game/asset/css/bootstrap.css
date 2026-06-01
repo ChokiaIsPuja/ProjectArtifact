@@ -5,8 +5,9 @@
  * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
  */
 
-
 @import url('https://fonts.googleapis.com/css2?family=Jaro:opsz@6..72&display=swap');
+
+
 
 body {
   font-family: "Jaro", sans-serif;
@@ -6007,6 +6008,18 @@ a.close.disabled {
 }
 
 .modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1050;
+  display: none;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  outline: 0;
+}
+
+.modal-shop {
   position: fixed;
   top: 0;
   left: 0;

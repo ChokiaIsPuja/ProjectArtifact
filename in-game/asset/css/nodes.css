@@ -1,0 +1,250 @@
+img {
+    -webkit-user-drag: none;
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
+
+
+/* .rpg-node {
+    height: 160px;
+    width: 160px;
+    max-width: 160px !important;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+
+
+    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    z-index: 5;
+} */
+/* The Pointer Overlay Class */
+/* ==========================================================================
+    1. BASE NODE CONFIGURATION (Fixed Text-Hiding)
+   ========================================================================== */
+.rpg-node {
+    display: inline-block;
+    position: absolute;
+    height: 120px;
+    width: 120px;
+    max-width: 120px !important;
+
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    image-rendering: pixelated;
+
+    /* REPLACED: Hide text cleanly WITHOUT using overflow:hidden */
+    color: transparent;
+    font-size: 0px;
+    user-select: none;
+
+    transition: transform 0.15s ease-in-out;
+}
+
+.rpg-node:hover {
+    transform: scale(1.1);
+}
+
+/* ==========================================================================
+    2. THE ACTIVE PLAYER POINTER (Fixed Clipping & Positioning)
+   ========================================================================== */
+
+
+/* The floating selector icon framework */
+.rpg-node.player-pointer::before {
+    content: "";
+    position: absolute;
+    top: -120px;
+    /* Pushes it clearly above the node area */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    /* Slightly bumped up from 32px so your pixel art pops */
+    height: 120px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    z-index: 110;
+    animation: pointerFloat 0.6s infinite alternate ease-in-out;
+}
+
+/* ==========================================================================
+    3. CHARACTER CLASS SPRITE ROUTING
+   ========================================================================== */
+.rpg-node.player-pointer[data-class="knight"]::before {
+    z-index: 200;
+    background-image: url("../../../asset/sprites/ui/pointers/knight_smol.png");
+}
+
+.rpg-node.player-pointer[data-class="mage"]::before {
+     z-index: 200;
+    background-image: url("../../../asset/sprites/ui/pointers/mage_smol.png");
+}
+
+/* Matches your archer class data payload flawlessly */
+.rpg-node.player-pointer[data-class="archer"]::before {
+     z-index: 200;
+    background-image: url("../../../asset/sprites/ui/pointers/ranger_smol.png");
+}
+
+/* Smooth floating handler animation loop */
+@keyframes pointerFloat {
+    0% {
+        transform: translateX(-50%) translateY(0);
+    }
+
+    100% {
+        transform: translateX(-50%) translateY(-8px);
+    }
+}
+
+
+/* ==========================================================================
+    🌑 FOG OF WAR: LOCKED NODES (Grayed Out)
+   ========================================================================== */
+.rpg-node.rpg-node-locked {
+    /* 1. Makes it look black-and-white */
+    filter: grayscale(100%) brightness(50%) contrast(80%);
+    
+    /* 2. Fades it back slightly into the parchment background */
+    opacity: 0.45;
+    
+    /* 3. Reassurance: Changes cursor to 'no-go' and kills hover scaling animations */
+    cursor: not-allowed;
+    pointer-events: none; /* Hard browser lock against clicking */
+}
+
+/* Override the hover effect so locked nodes stay completely still */
+.rpg-node.rpg-node-locked:hover {
+    transform: none !important;
+}
+
+
+/* ==========================================================================
+    🧩 LAYER STRUCTURAL RE-STACKING (Fixes Click Blocking)
+   ========================================================================== */
+
+/* 1. Ensure the background connection lines stay strictly behind the art buttons */
+#links, .links, svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;          /* Sits low in the background stack */
+    pointer-events: none; /* Allows click events to pass directly through it */
+}
+
+/* 2. Push your node interactive elements on top of the line layer */
+.rpg-node {
+    position: absolute;  /* Keeps your hardcoded inline top/left styling intact */
+    z-index: 5;          /* Lifts buttons safely over the SVG background glass */
+}
+
+/* 3. Ensure the dynamic class pointer overrides layout grab cursors */
+.rpg-node.rpg-node-next {
+    cursor: pointer !important; /* Re-forces interactive finger pointer over viewport grab rules */
+}
+
+/* ==========================================================================
+   Type Assignments: Just link your images once here!
+   ========================================================================== */
+
+
+
+.rpg-node-start {
+    background-image: url("../../../asset/sprites/nodes/start1.png");
+}
+
+.rpg-node-combat {
+    background-image: url("../../../asset/sprites/nodes/combat1.png");
+}
+
+.rpg-node-event {
+    background-image: url("../../../asset/sprites/nodes/event1.png");
+}
+
+.rpg-node-shop {
+    background-image: url("../../../asset/sprites/nodes/shop1.png");
+}
+
+.rpg-node-elite {
+    background-image: url("../../../asset/sprites/nodes/elite1.png");
+    /* Change to your actual file path */
+}
+
+.rpg-node-boss {
+    background-image: url("../../../asset/sprites/nodes/boss1.png");
+    /* Change to your actual file path */
+}
+
+.rpg-node-current {
+    
+
+}
+
+.rpg-node-passed {
+    opacity: 0.5;
+}
+
+.rpg-node-next {
+
+}
+
+.rpg-node p {
+    text-align: center;
+    margin: 0;
+}
+
+.viewport {
+    width: 1530px;
+    height: 875px;
+    border: 4px solid #B46940;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #B46940;
+    position: relative;
+}
+
+.map {
+    width: 5000px;
+    height: 2500px;
+
+    position: relative;
+
+    cursor: grab;
+    background-color: #FAC79B;
+}
+
+.map-controls {
+    position: fixed;
+
+    top: 116px;
+    right: 80px;
+
+    z-index: 11;
+
+    display: flex;
+    gap: 10px;
+}
+
+.viewport,
+.viewport * {
+    user-select: none;
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.links {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+
+}

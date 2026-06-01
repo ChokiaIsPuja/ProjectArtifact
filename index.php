@@ -4,6 +4,17 @@ session_start();
 if ($_SESSION['username'] != true) {
     header("location:login.php?p=notloggedin");
 }
+
+$page = isset($_GET['p']) ? $_GET['p'] : 'home';
+
+// 1. ROUTE CONTROL: If JavaScript is checking out, load the page logic and STOP immediately
+if (isset($_GET['action']) && $_GET['action'] === 'checkout') {
+    // Dynamically include your shop file based on your routing style
+    if (file_exists("pages/$page.php")) { 
+        include "pages/$page.php";
+    }
+    exit; // Hard cutoff so NO HTML structure below ever prints!
+}
 ?>
 
 <!DOCTYPE html>
