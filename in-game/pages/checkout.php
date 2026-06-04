@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // 2. Calculate total gold cost
         $id_list = implode(',', $purchased_item_ids);
-        $price_query = "SELECT SUM(price) AS total FROM item WHERE item_id IN ($id_list)";
+        $price_query = "SELECT SUM(sell_price) AS total FROM item WHERE item_id IN ($id_list)";
         $price_res = mysqli_query($conn, $price_query);
 
         if (!$price_res) {

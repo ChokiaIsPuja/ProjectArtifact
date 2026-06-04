@@ -23,7 +23,7 @@ if ($pool_row = mysqli_fetch_assoc($res)) {
 mysqli_stmt_close($stmt);
 
 // 2. Fetch all items CURRENTLY assigned to this specific pool
-$assigned_query = "SELECT si.shop_item_id, i.item_id, i.item_name, i.item_type, i.sprite, i.price 
+$assigned_query = "SELECT si.shop_item_id, i.item_id, i.item_name, i.item_type, i.sprite, i.buy_price 
                    FROM shop_item si
                    JOIN item i ON si.item_id = i.item_id
                    WHERE si.shop_pool_id = ?
@@ -43,7 +43,7 @@ while ($row = mysqli_fetch_assoc($assigned_result)) {
     <tr style='border-bottom: 1px solid #323238;'>
         <td style='padding:10px;'><img src='{$row['sprite']}' style='width:24px;height:24px;image-rendering:pixelated;'></td>
         <td style='padding:10px; font-weight:bold;'>[" . htmlspecialchars($row['item_type']) . "] " . htmlspecialchars($row['item_name']) . "</td>
-        <td style='padding:10px; color:#ffcc00;'>🪙 {$row['price']}</td>
+        <td style='padding:10px; color:#ffcc00;'>🪙 {$row['buy_price']}</td>
         <td style='padding:10px; text-align:right;'>
             <a href='process_manage_pools.php?action=remove&shop_item_id={$row['shop_item_id']}&map_level={$selected_map_level}' 
                style='background:#f75a68; color:white; padding:4px 8px; text-decoration:none; border-radius:4px; font-size:0.8rem;'>Remove</a>
@@ -54,7 +54,7 @@ mysqli_stmt_close($stmt);
 
 // 3. Fetch all other game items AVAILABLE to be added (excluding already assigned ones)
 $not_in_clause = !empty($assigned_ids) ? "WHERE item_id NOT IN (" . implode(',', $assigned_ids) . ")" : "";
-$available_query = "SELECT item_id, item_name, item_type, sprite, price FROM item $not_in_clause ORDER BY item_name ASC";
+$available_query = "SELECT item_id, item_name, item_type, sprite, buy_price FROM item $not_in_clause ORDER BY item_name ASC";
 $available_result = mysqli_query($conn, $available_query);
 ?>
 
@@ -111,7 +111,7 @@ $available_result = mysqli_query($conn, $available_query);
                                     <tr style="border-bottom: 1px solid #323238;">
                                         <td style="padding:10px;"><img src="<?= $item['sprite'] ?>" style="width:24px;height:24px;image-rendering:pixelated;"></td>
                                         <td style="padding:10px; font-weight:bold;">[<?= htmlspecialchars($item['item_type']) ?>] <?= htmlspecialchars($item['item_name']) ?></td>
-                                        <td style="padding:10px; color:#ffcc00;">🪙 <?= $item['price'] ?></td>
+                                        <td style="padding:10px; color:#ffcc00;">🪙 <?= $item['buy_price'] ?></td>
                                         <td style="padding:10px; text-align:right;">
                                             <a href="process_manage_pools.php?action=add&item_id=<?= $item['item_id'] ?>&shop_pool_id=<?= $current_pool_id ?>&map_level=<?= $selected_map_level ?>" 
                                                style="background:#5757df; color:white; padding:4px 8px; text-decoration:none; border-radius:4px; font-size:0.8rem;">+ Add to Pool</a>

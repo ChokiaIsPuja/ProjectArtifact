@@ -1,5 +1,6 @@
 <?php
 include __DIR__ . '/conn.php';
+global $conn;
 session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
@@ -19,11 +20,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         }
 
         // 1. Fetch baseline class blueprints
-        $classQuery = "SELECT base_hp, base_atk, base_def FROM class WHERE class_id = ?";
+        $classQuery = "SELECT base_hp, base_str, base_def, base_dex, base_int, base_fth FROM class WHERE class_id = ?";
         $stmt = mysqli_prepare($conn, $classQuery);
         mysqli_stmt_bind_param($stmt, "i", $classId);
         mysqli_stmt_execute($stmt);
         $classStats = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+        mysqli_stmt_close($stmt);
 
         if (!$classStats) {
             header('Location: index.php?error=invalid_class');
@@ -33,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         // Default leveling baselines
         $lvl = 1;
         $exp = 0;
-        $gold = 0;
+        $gold = 200;
         $created_at = date('Y-m-d H:i:s');
 
         // 2. Commit the main character profile layer
@@ -48,20 +50,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 
         // Grab the unique primary key generated for this new character
         $newPlayerId = mysqli_insert_id($conn);
+        mysqli_stmt_close($stmt2);
 
         // 3. Seed corresponding record to player_stats table automatically
-        $statsQuery = "INSERT INTO player_stats (player_id, curr_max_hp, curr_atk, curr_def) VALUES (?, ?, ?, ?)";
+        $statsQuery = "INSERT INTO player_stats (player_id, curr_max_hp, curr_str, curr_def, curr_dex, curr_int, curr_fth) VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt3 = mysqli_prepare($conn, $statsQuery);
-        mysqli_stmt_bind_param($stmt3, "iiii", 
+        
+        // 🎯 FIXED: Changed type constraint configuration string from "iiiiii" to "iiiiiii" (7 variables)
+        mysqli_stmt_bind_param($stmt3, "iiiiiii", 
             $newPlayerId, 
             $classStats['base_hp'], 
-            $classStats['base_atk'], 
-            $classStats['base_def']
+            $classStats['base_str'], 
+            $classStats['base_def'],
+            $classStats['base_dex'],
+            $classStats['base_int'],
+            $classStats['base_fth']
         );
 
         if (!mysqli_stmt_execute($stmt3)) {
             header('Location: index.php?error=save_stats');
             exit;
+        }
+        mysqli_stmt_close($stmt3);
+
+        // =====================================================================
+        // 🎲 AUTOMATIC SEED ROLLER FOR THE FRESH HERO PROFILE
+        // =====================================================================
+        $generatedSeed = mt_rand(100000, 99999999);
+        $initialNode = 'node1'; // The entry tile point
+        $statusActive = 1;
+
+        $runQuery = "INSERT INTO runs (player_id, current_node, status, run_seed, started_at) VALUES (?, ?, ?, ?, NOW())";
+        $runStmt = mysqli_prepare($conn, $runQuery);
+        if ($runStmt) {
+            mysqli_stmt_bind_param($runStmt, "isii", $newPlayerId, $initialNode, $statusActive, $generatedSeed);
+            if (mysqli_stmt_execute($runStmt)) {
+                mysqli_stmt_close($runStmt);
+                
+                // Automatically drop them right onto the grid canvas layout view loop!
+                header('Location: index.php?saved=1');
+                exit();
+            }
         }
 
         header('Location: index.php?saved=1');
@@ -81,11 +110,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             exit;
         }
 
-        // FIX: Changed target identifier clause constraint column to player_id
         $query = "UPDATE player SET name = ?, class_id = ? WHERE player_id = ?";
         $stmt = mysqli_prepare($conn, $query);
         mysqli_stmt_bind_param($stmt, "sii", $name, $classId, $id);
         mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
 
         header('Location: index.php?updated=1');
         exit;
@@ -99,12 +128,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
     $id = intval($_GET['id']);
     
     if ($id > 0) {
-        // NOTE: Because of your database foreign key rules, you may want to delete player_stats first,
-        // or ensure your FK constraint on player_id has "ON DELETE CASCADE" active!
+        // Safe cascading order: drop stats and running maps first to avoid constraints block exceptions
+        $deleteStats = "DELETE FROM player_stats WHERE player_id = ?";
+        $stmtStats = mysqli_prepare($conn, $deleteStats);
+        mysqli_stmt_bind_param($stmtStats, "i", $id);
+        mysqli_stmt_execute($stmtStats);
+        mysqli_stmt_close($stmtStats);
+
+        $deleteRuns = "DELETE FROM runs WHERE player_id = ?";
+        $stmtRuns = mysqli_prepare($conn, $deleteRuns);
+        mysqli_stmt_bind_param($stmtRuns, "i", $id);
+        mysqli_stmt_execute($stmtRuns);
+        mysqli_stmt_close($stmtRuns);
+
         $query = "DELETE FROM player WHERE player_id = ?";
         $stmt = mysqli_prepare($conn, $query);
         mysqli_stmt_bind_param($stmt, "i", $id);
         mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
     }
     header('Location: index.php?deleted=1');
     exit;

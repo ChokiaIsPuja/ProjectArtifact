@@ -10,7 +10,7 @@ $page = isset($_GET['p']) ? $_GET['p'] : 'home';
 // 1. ROUTE CONTROL: If JavaScript is checking out, load the page logic and STOP immediately
 if (isset($_GET['action']) && $_GET['action'] === 'checkout') {
     // Dynamically include your shop file based on your routing style
-    if (file_exists("pages/$page.php")) { 
+    if (file_exists("pages/$page.php")) {
         include "pages/$page.php";
     }
     exit; // Hard cutoff so NO HTML structure below ever prints!
@@ -48,46 +48,46 @@ if (isset($_GET['action']) && $_GET['action'] === 'checkout') {
 </head>
 
 <body class="d-flex align-items-center justify-content-center min-vh-100">
-<div id="preloader">
-  <img src="asset/img/loading.png" alt="Loading..." class="preloader-image">
-</div>
+    <div id="preloader">
+        <img src="asset/img/loading.png" alt="Loading..." class="preloader-image">
+    </div>
 
-        <div class="container text-center" style="border:none;">
-            <h2 style="color: #fff;">Welcome, <?php echo $_SESSION['username']; ?>!</h2>
-            <div class="row">
-                <div class="col-12">
-                    <h1 class="text-white" style="font-size: 50px;">ProjectArtifact</h1>
-                </div>
+    <div class="container text-center" style="border:none;">
+        <h2 style="color: #fff;">Welcome, <?php echo $_SESSION['username']; ?>!</h2>
+        <div class="row">
+            <div class="col-12">
+                <h1 class="text-white" style="font-size: 50px;">ProjectArtifact</h1>
             </div>
-            <div class="row">
-                <div class="col-12 mt-3">
-                    <button type="button" onfocus="this.style.boxShadow='none';" class="btn btn-primary" id="loadGameButton" data-toggle="modal" data-target="#loadModal" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;">
-                        Begin / Continue
-                    </button>
-                </div>
+        </div>
+        <div class="row">
+            <div class="col-12 mt-3">
+                <button type="button" onfocus="this.style.boxShadow='none';" class="btn btn-primary" id="loadGameButton" data-toggle="modal" data-target="#loadModal" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;">
+                    Begin / Continue
+                </button>
             </div>
-            <div class="row">
-                <div class="col-12 mt-3">
-                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;" id="newGameButton">
-                        Create Character
-                    </button>
-                </div>
+        </div>
+        <div class="row">
+            <div class="col-12 mt-3">
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;" id="newGameButton">
+                    Create Character
+                </button>
             </div>
-            <div class="row">
-                <div class="col-12 mt-3">
-                    <a href="how_to_play.php"><button class="btn btn-primary" onfocus="this.style.boxShadow='none';" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;" id="howToPlayButton">How To Play</button></a>
-                </div>
+        </div>
+        <div class="row">
+            <div class="col-12 mt-3">
+                <a href="how_to_play.php"><button class="btn btn-primary" onfocus="this.style.boxShadow='none';" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;" id="howToPlayButton">How To Play</button></a>
             </div>
-            <div class="row">
-                <div class="col-12 mt-3">
-                    <a href="https://github.com/ChokiaIsPuja/ProjectArtifact"><button class="btn btn-primary" onfocus="this.style.boxShadow='none';" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;" id="creditsButton">Credits</button></a>
-                </div>
+        </div>
+        <div class="row">
+            <div class="col-12 mt-3">
+                <a href="https://github.com/ChokiaIsPuja/ProjectArtifact"><button class="btn btn-primary" onfocus="this.style.boxShadow='none';" style="width: 400px; background-color:#FAC79B; border: none; height: 50px; color: #000;" id="creditsButton">Credits</button></a>
             </div>
-            <div class="row">
-                <div class="col-12 mt-3">
-                    <a href="logout.php" class="btn btn-danger" style="width: 400px;">Logout</a>
-                </div>
+        </div>
+        <div class="row">
+            <div class="col-12 mt-3">
+                <a href="logout.php" class="btn btn-danger" style="width: 400px;">Logout</a>
             </div>
+        </div>
         <footer class="mt-auto">
             <div class="row mt-5">
                 <div class="col-12">
@@ -99,6 +99,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'checkout') {
                 </div>
             </div>
         </footer>
+
         <?php
         $classQuery = "SELECT * FROM `class`";
         $classResult = mysqli_query($conn, $classQuery);
@@ -155,24 +156,23 @@ if (isset($_GET['action']) && $_GET['action'] === 'checkout') {
             return '';
         }
         ?>
-        <!-- Modal Start Game -->
-        <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true"
-            data-backdrop="static" data-keyboard="false">
+
+        <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
                 <div class="modal-content" style="background-color: #D39670;">
-                    <form action="save-character.php" method="post">
+                    <form action="save-character.php" id="createCharacterForm" method="post">
                         <input type="hidden" name="aksi" value="add">
+
                         <?php
                         $query = "SELECT * FROM user WHERE username='" . $_SESSION['username'] . "'";
-
                         $sql = mysqli_query($conn, $query);
                         $row = mysqli_fetch_assoc($sql);
                         ?>
 
                         <input type="hidden" name="id_user" value="<?php echo $row['id_user']; ?>">
+
                         <div class="modal-header d-flex justify-content-center align-items-center position-relative" style="background-color: #b45b5b; border-bottom: none;">
                             <h5 class="modal-title m-0" id="exampleModalLabel" style="color: white;">Select Class</h5>
-
                             <button type="button" class="close position-absolute" data-dismiss="modal" aria-label="Close" style="right: 15px; top: 50%; transform: translateY(-50%); color: white; opacity: 0.8;">
                                 <span aria-hidden="true">&times;</span>
                             </button>
@@ -184,9 +184,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'checkout') {
                                         <?php
                                         $color = "#FAC79B";
                                         $classImage = getClassImageUrl($classRow, $classNameField);
+                                        $player_id = isset($classRow['player_id']) ? $classRow['player_id'] : null;
                                         ?>
                                         <div class="col-12 col-md-4 mb-3">
-                                            <div class="card mb-3 mx-auto w-100" data-class-id="<?= htmlspecialchars($classRow[$classIdField]) ?>" role="button" tabindex="0" style="background-color: <?= htmlspecialchars($color) ?>; color: #000;">
+                                            <div class="card mb-3 mx-auto w-100 class-selection-card"
+                                                data-class-id="<?= htmlspecialchars($classRow[$classIdField]) ?>"
+                                                data-player-id="<?= htmlspecialchars($player_id) ?>"
+                                                role="button"
+                                                tabindex="0"
+                                                style="background-color: <?= htmlspecialchars($color) ?>; color: #000;"
+                                                onclick="document.getElementById('classId').value = this.getAttribute('data-class-id'); document.getElementById('selectedPlayerId').value = this.getAttribute('data-player-id');">
+
                                                 <?php if ($classImage) : ?>
                                                     <img src="<?= htmlspecialchars($classImage) ?>" class="card-img-top" alt="<?= htmlspecialchars($classRow[$classNameField]) ?>">
                                                 <?php else : ?>
@@ -194,11 +202,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'checkout') {
                                                         <span>No image</span>
                                                     </div>
                                                 <?php endif; ?>
+
                                                 <div class="card-header text-center" style="background-color: rgb(226, 73, 73); border-bottom: none; color: #ffffff;">
                                                     <?= htmlspecialchars($classRow[$classNameField]) ?>
                                                 </div>
-                                                <div class="card-body text-center">
-                                                </div>
+                                                <div class="card-body text-center"></div>
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
@@ -211,7 +219,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'checkout') {
                             <div class="form-group mt-3 text-center w-75 mx-auto">
                                 <label for="characterName" style="color: #ffffff;">Character Name</label>
                                 <input type="text" class="form-control" id="characterName" name="name" placeholder="Enter character name">
+
                                 <input type="hidden" id="classId" name="class_id" value="">
+                                <input type="hidden" id="selectedPlayerId" name="player_id" value="">
                             </div>
                         </div>
                         <div class="modal-footer" style="text-align: center; justify-content: center; background-color: #b45b5b; color: #ffffff; border-top: none;">
@@ -222,156 +232,148 @@ if (isset($_GET['action']) && $_GET['action'] === 'checkout') {
                 </div>
             </div>
         </div>
-        <!-- Modal Load Game -->
-        <div class="modal fade" id="loadModal" tabindex="-1" aria-labelledby="loadModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header justify-content-center"
-                        style="background-color: #b45b5b; color: #ffffff; border-bottom: none;">
 
-                        <h5 class="modal-title w-100 text-center m-0"
-                            id="loadModalLabel">
-                            Select Character
-                        </h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true" style="color: #fff;">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body modal-dialog-scrollable" style="background-color: #D39670;">
-                        <div class="container-fluid">
-                            <div class="row">
-                                <div class="col-12">
-                                    <div class="card mb-3" style="border:none">
-                                        <div class="card-body" style="background-color: #D39670; border:none;">
-                                            <?php
-                                            $query1 = "SELECT * FROM user
-                                             WHERE username = '" . $_SESSION['username'] . "'";
+        <form action="process_start_game.php" method="post">
+            <div class="modal fade" id="loadModal" tabindex="-1" aria-labelledby="loadModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+                    <div class="modal-content">
 
-                                            $result1 = mysqli_query($conn, $query1);
+                        <div class="modal-header justify-content-center" style="background-color: #b45b5b; color: #ffffff; border-bottom: none;">
+                            <h5 class="modal-title w-100 text-center m-0" id="loadModalLabel">
+                                Select Character Profile
+                            </h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true" style="color: #fff;">&times;</span>
+                            </button>
+                        </div>
 
-                                            $row = mysqli_fetch_assoc($result1);
+                        <div class="modal-body modal-dialog-scrollable" style="background-color: #D39670;">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card mb-3" style="border:none">
+                                            <div class="card-body" style="background-color: #D39670; border:none;">
+                                                <?php
+                                                $query1 = "SELECT * FROM user WHERE username = '" . $_SESSION['username'] . "'";
+                                                $sql = mysqli_query($conn, $query1);
+                                                $row = mysqli_fetch_assoc($sql);
+                                                $id_user = $row['id_user'];
 
-                                            $id_user = $row['id_user'];
+                                                $query2 = "SELECT player.*, class.class_name, class.avatar
+                                                           FROM player
+                                                           LEFT JOIN class ON player.class_id = class.class_id
+                                                           WHERE player.id_user = '$id_user'";
 
+                                                $result2 = mysqli_query($conn, $query2);
+                                                ?>
 
-                                            // echo "<p class='card-text'>User ID: " . htmlspecialchars($id_user) . "</p>";
-                                            $query2 = $query2 = "SELECT player.*, class.class_name, class.avatar
-                                            FROM player
-                                            LEFT JOIN class
-                                            ON player.class_id = class.class_id
-                                            WHERE player.id_user = '$id_user'";
+                                                <input type="hidden" name="id_user" value="<?php echo $id_user; ?>">
+                                                <input type="hidden" id="loadPlayerId" name="player_id" value="">
+                                                <input type="hidden" id="loadAction" name="aksi" value="">
 
-                                            $result2 = mysqli_query($conn, $query2);
-                                            ?>
+                                                <?php if (mysqli_num_rows($result2) > 0): ?>
+                                                    <?php while ($row1 = mysqli_fetch_assoc($result2)): ?>
 
-                                            <?php if (mysqli_num_rows($result2) > 0): ?>
-                                                <?php while ($row1 = mysqli_fetch_assoc($result2)): ?>
+                                                        <div class="row align-items-center" style="margin-top: 1vh;">
+                                                            <div class="col-12">
+                                                                <div class="card" style="background-color: #D39670; border: 2px solid #b45b5b; border-radius: 10px;">
+                                                                    <div class="card-body" style="background-color: #FAC79B;">
+                                                                        <h5 class="card-title" style="text-align: left;background-color: #b45b5b; padding: 10px; border-radius: 2px; color: #ffffff;">
+                                                                            <?= htmlspecialchars($row1['name']) ?>
+                                                                        </h5>
 
-                                                <div class="row align-items-center" style="margin-top: 1vh;">
-                                                    <div class="col-12">
-                                                        <div class="card" style="background-color: #D39670; border: 2px solid #b45b5b; border-radius: 10px;">
-                                                            <div class="card-body" style="background-color: #FAC79B;">
-                                                                <h5 class="card-title" style="text-align: left;background-color: #b45b5b; padding: 10px; border-radius: 2px; color: #ffffff;">
-                                                                    <?= htmlspecialchars($row1['name']) ?>
-                                                                </h5>
+                                                                        <div class="row">
+                                                                            <div class="col-3">
+                                                                                <div class="card mb-2" style="max-width: 220px; border: 3px solid #b45b5b; border-radius: none;">
+                                                                                    <img src="asset/sprites/classes/<?= htmlspecialchars($row1['avatar']) ?>" alt="<?= htmlspecialchars($row1['class_name']) ?>" class="img-fluid d-block mx-auto" style="max-height: 180px; width: auto; object-fit: contain;">
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="col-5">
+                                                                                <p class="card-text" style="text-align: left; color: black;">
+                                                                                    Class: <?= htmlspecialchars($row1['class_name']) ?><br>
+                                                                                    Level: <?= htmlspecialchars($row1['level']) ?><br>
+                                                                                    Gold: <?= htmlspecialchars($row1['gold']) ?><br>
+                                                                                </p>
+                                                                            </div>
+                                                                            <div class="col-4 d-flex align-items-center justify-content-center">
 
-                                                                <div class="row">
-                                                                    <div class="col-3">
-                                                                        <div class="card mb-2" style="max-width: 220px; border: 3px solid #b45b5b; border-radius: none;">
-                                                                            <img src="asset/sprites/classes/<?= htmlspecialchars($row1['avatar']) ?>" alt="<?= htmlspecialchars($row1['class_name']) ?>" class="img-fluid d-block mx-auto" style="max-height: 180px; width: auto; object-fit: contain;">
+                                                                                <?php if ($row1['level'] > 1): ?>
+                                                                                    <button type="submit"
+                                                                                        onclick="document.getElementById('loadPlayerId').value = '<?= $row1['player_id'] ?>'; document.getElementById('loadAction').value = 'continue';"
+                                                                                        class="btn btn-primary d-flex align-items-center justify-content-center w-75"
+                                                                                        style="height: 50px; background-color: #b45b5b; border: none; padding: 0; color: white;">
+                                                                                        <span class="m-0">Continue Run</span>
+                                                                                    </button>
+                                                                                <?php else: ?>
+                                                                                    <button type="submit"
+                                                                                        onclick="document.getElementById('loadPlayerId').value = '<?= $row1['player_id'] ?>'; document.getElementById('loadAction').value = 'add';"
+                                                                                        class="btn btn-primary d-flex align-items-center justify-content-center w-75"
+                                                                                        style="height: 50px; background-color: #b45b5b; border: none; padding: 0; color: white;">
+                                                                                        <span class="m-0">Start Run</span>
+                                                                                    </button>
+                                                                                <?php endif; ?>
+
+                                                                            </div>
                                                                         </div>
                                                                     </div>
-                                                                    <div class="col-5">
-                                                                        <p class="card-text" style="text-align: left;">
-                                                                            Class: <?= htmlspecialchars($row1['class_name']) ?><br>
-                                                                            Level: <?= htmlspecialchars($row1['level']) ?><br>
-                                                                            Gold: <?= htmlspecialchars($row1['gold']) ?><br>
-                                                                        </p>
-                                                                    </div>
-                                                                    <div class="col-4 d-flex align-items-center justify-content-center">
-                                                                        <?php if ($row1['level'] > 1): ?>
-                                                                            <a href="in-game/index.php?p=level1&id=<?= $row1['player_id'] ?>"
-                                                                                class="btn btn-primary d-flex align-items-center justify-content-center w-75"
-                                                                                style="height: 50px; line-height: 50px; background-color: #b45b5b; border: none; padding: 0;">
-                                                                                <span class="m-0">Continue</span>
-                                                                            </a>
-                                                                        <?php else: ?>
-                                                                            <a href="in-game/index.php?p=level1&id=<?= $row1['player_id'] ?>"
-                                                                                class="btn btn-primary d-flex align-items-center justify-content-center w-75"
-                                                                                style="height: 50px; line-height: 50px; background-color: #b45b5b; border: none; padding: 0;">
-                                                                                <span class="m-0">Start</span>
-                                                                            </a>
-                                                                        <?php endif; ?>
-                                                                    </div>
-
                                                                 </div>
+                                                            </div>
+                                                        </div>
 
-
-
-
-
-
+                                                    <?php endwhile; ?>
+                                                <?php else: ?>
+                                                    <div class="row" style="margin-top: 2vh;">
+                                                        <div class="col-12">
+                                                            <div class="alert alert-info text-center" role="alert" style="background-color: #FAC79B; border: 1px solid #b45b5b; color: #000;">
+                                                                No characters found. Use "Create Character" to make your first character.
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-
-                                                <?php endwhile; ?>
-                                            <?php else: ?>
-                                                <div class="row" style="margin-top: 2vh;">
-                                                    <div class="col-12">
-                                                        <div class="alert alert-info text-center" role="alert" style="background-color: #FAC79B; border: 1px solid #b45b5b; color: #000;">
-                                                            No characters found. Use "Create Character" to make your first character.
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            <?php endif; ?>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="modal-footer justify-content-center"
-                        style="background-color: #b45b5b; color: #ffffff; border-top: none;">
 
-                        <button type="button"
-                            class="btn btn-secondary"
-                            data-dismiss="modal" style="width: 500px;height: 50px;background-color: #f07a7a; border: none; color: #ffffff;">
-                            Cancel
-                        </button>
+                        <div class="modal-footer justify-content-center" style="background-color: #b45b5b; color: #ffffff; border-top: none;">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal" style="width: 500px; height: 50px; background-color: #f07a7a; border: none; color: #ffffff;">
+                                Cancel
+                            </button>
+                        </div>
 
                     </div>
                 </div>
             </div>
-        </div>
+        </form>
     </div>
+
     <script src="asset/js/jquery-3.7.1.js"></script>
     <script src="asset/js/bootstrap.bundle.min.js"></script>
     <script>
         $(function() {
-            // Card selection
+            // Card selection matrix targeting elements inside the creation modal specifically
             $('.card[data-class-id]').on('click keypress', function(e) {
                 if (e.type === 'keypress' && e.key !== 'Enter' && e.key !== ' ') return;
                 $('.card[data-class-id]').removeClass('border-3 border-warning selected-card');
                 $(this).addClass('border-3 border-warning selected-card');
                 var clsId = $(this).data('class-id');
                 $('#classId').val(clsId);
-                // enable Begin if name present
+
                 var name = $('#characterName').val().trim();
                 $('#beginButton').prop('disabled', !(name && clsId));
             });
 
-            // Enable Begin when name input and class selected
+            // Input monitors for Character creation validation state bounds
             $('#characterName').on('input', function() {
                 var name = $(this).val().trim();
                 var clsId = $('#classId').val();
                 $('#beginButton').prop('disabled', !(name && clsId));
             });
 
-            // Begin is now a native form submit; validation will prevent submit when missing
-            // Keep simple client-side validation on form submit
-            $('form').on('submit', function(e) {
+            // 🎯 FIXED SELECTOR: Only intercept validation handlers for the creation layout form block!
+            $('#createCharacterForm').on('submit', function(e) {
                 var name = $('#characterName').val().trim();
                 var clsId = $('#classId').val();
                 if (!clsId) {
@@ -384,12 +386,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'checkout') {
                     alert('Please enter a character name.');
                     return false;
                 }
-                // allow form to submit normally
             });
 
-            // initialize
+            // Initialize Creation button status
             $('#beginButton').prop('disabled', true);
         });
+
         function startPreloaderExit() {
             $('#preloader').addClass('loaded');
             $('body').addClass('page-ready');
@@ -418,9 +420,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'checkout') {
             preloaderPageReady = true;
             checkPreloaderExit();
         });
-
     </script>
-    
 </body>
 
 </html>

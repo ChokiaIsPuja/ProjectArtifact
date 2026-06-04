@@ -1,6 +1,7 @@
 <?php
 include_once __DIR__ . '/../../conn.php';
 
+// Player ID must come from URL parameter (user can have multiple characters)
 $player_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 if ($player_id <= 0) {
@@ -10,7 +11,7 @@ if ($player_id <= 0) {
 $player_data = [];
 
 if ($player_id > 0) {
-    $query = "SELECT p.*, c.class_name, c.avatar, ps.curr_max_hp, ps.curr_atk, ps.curr_def, ps.curr_spd, p.level
+    $query = "SELECT p.*, c.class_name, c.avatar, ps.curr_max_hp, ps.curr_str, ps.curr_def, ps.curr_dex, ps.curr_int, ps.curr_fth, p.level
               FROM player p
               LEFT JOIN class c ON p.class_id = c.class_id
               LEFT JOIN player_stats ps ON p.player_id = ps.player_id 
@@ -28,8 +29,14 @@ if ($player_id > 0) {
 
 if (!empty($player_data)) {
     $player_data['name'] = $player_data['player_name'] ?? $player_data['name'] ?? 'Mimi';
-    $player_data['spd'] = intval(($player_data['curr_spd'] ?? $player_data['spd']) ?: 10);
-    $player_data['curr_spd'] = $player_data['spd'];
+    $player_data['str'] = intval($player_data['curr_str'] ?? 10);
+    $player_data['def'] = intval($player_data['curr_def'] ?? 5);
+    $player_data['dex'] = intval(($player_data['curr_dex'] ?? $player_data['dex']) ?: 10);
+    $player_data['curr_dex'] = $player_data['dex'];
+    $player_data['int'] = intval(($player_data['curr_int'] ?? $player_data['int']) ?: 10);
+    $player_data['curr_int'] = $player_data['int'];
+    $player_data['fth'] = intval(($player_data['curr_fth'] ?? $player_data['fth']) ?: 10);
+    $player_data['curr_fth'] = $player_data['fth'];
 
     $row = $player_data;
     $row['name'] = $player_data['name'];
@@ -46,8 +53,14 @@ if (!empty($player_data)) {
         'avatar' => 'player_avatar.png',
         'curr_max_hp' => 100,
         'curr_hp' => 100,
-        'spd' => 10,
-        'curr_spd' => 10,
+        'curr_str' => 10,
+        'curr_def' => 5,
+        'dex' => 10,
+        'curr_dex' => 10,
+        'int' => 10,
+        'curr_int' => 10,
+        'fth' => 10,
+        'curr_fth' => 10,
         'level' => 1
     ];
     $row = $player_data;
@@ -65,7 +78,8 @@ $active_enemies = [];
 $turn_order_stack = [];
 $encounter_limit = rand(2, 4);
 
-$stmt2 = mysqli_prepare($conn, "SELECT e.enemy_id, e.enemy_name, e.sprite, es.hp, es.atk, es.def, es.spd 
+// ERD ALIGNMENT: Fetch real system constraint columns from enemy_stats
+$stmt2 = mysqli_prepare($conn, "SELECT e.enemy_id, e.enemy_name, e.sprite, es.enemy_hp, es.enemy_str, es.enemy_def, es.enemy_dex, es.enemy_int, es.enemy_fth 
                                 FROM enemy e 
                                 JOIN enemy_stats es ON e.enemy_id = es.enemy_id");
 mysqli_stmt_execute($stmt2);
@@ -77,20 +91,20 @@ while ($template = mysqli_fetch_assoc($res2)) {
 }
 mysqli_stmt_close($stmt2);
 
-$player_speed = intval($player_data['spd'] ?? 10);
+$player_dex = intval($player_data['dex'] ?? 10);
 $turn_order_stack[] = [
     'id'       => null,
     'name'     => $player_data['name'],
     'type'     => 'player',
     'sprite'   => $player_data['avatar'] ?? 'player_avatar.png',
-    'spd'      => $player_speed,
-    'curr_spd' => $player_speed
+    'dex'      => $player_dex,
+    'curr_dex' => $player_dex
 ];
 
 if (!empty($enemy_template_pool)) {
     for ($i = 0; $i < $encounter_limit; $i++) {
         $base = $enemy_template_pool[array_rand($enemy_template_pool)];
-        $enemySpd = intval(($base['spd'] ?? $base['speed']) ?: 8);
+        $enemyDex = intval($base['enemy_dex'] ?? 8);
 
         $enemy_instance = [
             'id'         => $i,
@@ -98,12 +112,14 @@ if (!empty($enemy_template_pool)) {
             'name'       => $base['enemy_name'] . ' ' . ($i + 1),
             'enemy_name' => $base['enemy_name'],
             'sprite'     => $base['sprite'],
-            'hp'         => intval($base['hp']),
-            'max_hp'     => intval($base['hp']),
-            'atk'        => intval($base['atk']),
-            'def'         => intval($base['def']),
-            'spd'        => $enemySpd,
-            'curr_spd'   => $enemySpd,
+            'hp'         => intval($base['enemy_hp']),
+            'max_hp'     => intval($base['enemy_hp']),
+            'str'        => intval($base['enemy_str']),
+            'def'        => intval($base['enemy_def']),
+            'dex'        => $enemyDex,
+            'curr_dex'   => $enemyDex,
+            'int'        => intval($base['enemy_int'] ?? 0),
+            'fth'        => intval($base['enemy_fth'] ?? 0),
             'alive'      => true
         ];
 
@@ -114,14 +130,14 @@ if (!empty($enemy_template_pool)) {
             'name'     => $enemy_instance['name'],
             'type'     => 'enemy',
             'sprite'   => $enemy_instance['sprite'],
-            'spd'      => $enemy_instance['spd'],
-            'curr_spd' => $enemy_instance['curr_spd']
+            'dex'      => $enemy_instance['dex'],
+            'curr_dex' => $enemy_instance['curr_dex']
         ];
     }
 }
 
 usort($turn_order_stack, function ($a, $b) {
-    return $b['spd'] <=> $a['spd'];
+    return $b['dex'] <=> $a['dex'];
 });
 
 $enemies     = $active_enemies;
@@ -130,10 +146,10 @@ $combatants  = $turn_order_stack;
 
 $player_inventory = [];
 if ($player_id > 0) {
-    $stmt3 = mysqli_prepare($conn, "SELECT b.qty, i.item_id, i.item_name, i.item_type, ia.att_atk, ia.att_hp 
+    $stmt3 = mysqli_prepare($conn, "SELECT b.qty, i.item_id, i.item_name, i.item_type, ia.att_heal, ia.att_max_hp 
                                     FROM bag b 
                                     JOIN item i ON b.item_id = i.item_id 
-                                    JOIN item_attributes ia ON i.id_item_attributes = ia.id_item_attributes 
+                                    LEFT JOIN item_attributes ia ON i.item_id = ia.item_id 
                                     WHERE b.player_id = ? AND i.item_type='consumables'");
     mysqli_stmt_bind_param($stmt3, "i", $player_id);
     mysqli_stmt_execute($stmt3);
@@ -150,9 +166,9 @@ if (!empty($player_data)) {
     $player_class = intval($player_data['class_id'] ?? 0);
 
     $skill_query = "SELECT ob.skill_id, ob.skill_name, ob.skill_desc, ob.lvl_required, ob.cooldown, ob.skill_area,
-                           sa.skill_atk, sa.skill_def, sa.skill_heal
+                           sa.skill_str, sa.skill_def, sa.skill_heal, sa.skill_int
                     FROM obtainable_skill ob
-                    JOIN skill_attributes sa ON ob.id_skill_attributes = sa.id_skill_attributes
+                    LEFT JOIN skill_attributes sa ON ob.id_skill_attributes = sa.id_skill_attributes
                     WHERE ob.class_id = ? AND ob.lvl_required <= ?
                     ORDER BY ob.skill_id ASC";
 
@@ -162,6 +178,7 @@ if (!empty($player_data)) {
         mysqli_stmt_execute($stmt_skills);
         $skill_result = mysqli_stmt_get_result($stmt_skills);
         while ($skill_row = mysqli_fetch_assoc($skill_result)) {
+            $skill_row['mana_cost'] = ($skill_row['skill_str'] > 20 || $skill_row['skill_heal'] > 20) ? 2 : 1;
             $player_skills[] = $skill_row;
         }
         mysqli_stmt_close($stmt_skills);
@@ -173,8 +190,9 @@ if (!empty($player_data)) {
 
     <div class="damage-popup text-danger fw-bold position-absolute d-none" id="player-damage-pop" style="z-index: 99; top: 20%; left: 10%;"> -0 </div>
 
-    <div class="battle-stage d-flex align-items-end justify-content-around flex-grow-1 mb-3" style="min-height: 350px; position: relative;">
 
+
+    <div class="battle-stage d-flex align-items-center justify-content-around flex-grow-1 mb-3" style="min-height: 200px; position: relative; background-color:#FAC79B; border-radius: 12px;">
         <div class="enemy-party d-flex gap-4 align-items-end justify-content-center w-100" style="padding-bottom: 60px;">
             <?php if (!empty($active_enemies)): ?>
                 <?php foreach ($active_enemies as $index => $enemy):
@@ -220,20 +238,35 @@ if (!empty($player_data)) {
 
     <div class="row g-2 pb-2">
         <div class="col-9">
-            <div class="p-3 d-flex flex-column gap-2 justify-content-center h-100" style="background-color: #FAC79B; border-radius: 12px; min-height: 140px;">
+            <div class="col-12 p-2 rounded" style="background-color: #FAC79B;">
+                <div class="progress" style="height: 10px; background-color: rgba(0,0,0,0.3); border: 1px solid rgba(0, 180, 216, 0.3); border-radius: 6px;">
+                    <div id="player-mana-bar"
+                        class="progress-bar bg-info progress-bar-striped progress-bar-animated"
+                        role="progressbar"
+                        style="width: 100%; transition: width 0.4s ease;"
+                        aria-valuenow="1"
+                        aria-valuemin="0"
+                        aria-valuemax="10"></div>
+                </div>
+            </div>
+            
+            <div class="p-3 d-flex flex-column gap-2 justify-content-center" style="background-color: #FAC79B; min-height: 100px; height: 180px; border-radius: 12px;">
 
                 <div id="skills-panel">
                     <?php if (!empty($player_skills)): ?>
                         <div class="row g-2">
                             <?php foreach ($player_skills as $skill): ?>
                                 <div class="col-6">
-                                    <button class="btn w-100 skill-btn fw-bold py-2"
+                                    <button class="btn w-100 skill-btn fw-bold py-2 position-relative d-flex flex-column align-items-center justify-content-center"
+                                        id="skill-btn-<?= htmlspecialchars($skill['skill_id']) ?>"
                                         style="background-color: #8B5A3C; color: white; border: 2px solid #5A3A2A; border-radius: 8px;"
                                         onclick="executePlayerSkill(<?= htmlspecialchars(json_encode($skill)) ?>, event)"
                                         data-skill-id="<?= htmlspecialchars($skill['skill_id']) ?>"
                                         data-skill-name="<?= htmlspecialchars($skill['skill_name']) ?>"
                                         title="<?= htmlspecialchars($skill['skill_desc']) ?>">
-                                        <?= htmlspecialchars($skill['skill_name']) ?>
+                                        <div><?= htmlspecialchars($skill['skill_name']) ?></div>
+                                        <small class="text-info" style="font-size:0.75rem;">🔮 Cost: <?= $skill['mana_cost'] ?> | ⏳ CD: <?= $skill['cooldown'] ?>t</small>
+                                        <div class="position-absolute top-50 start-50 translate-middle w-100 h-100 d-none align-items-center justify-content-center rounded bg-dark bg-opacity-75 cd-overlay" style="z-index: 5;">0</div>
                                     </button>
                                 </div>
                             <?php endforeach; ?>
@@ -287,61 +320,78 @@ if (!empty($player_data)) {
 </div>
 
 <script>
-    const combatState = {
-        player: {
-            id: <?= json_encode($player_id); ?>,
-            name: <?= json_encode($player_data['name']); ?>,
-            hp: <?= json_encode(intval($player_data['curr_hp'] ?? $player_data['curr_max_hp'] ?? 100)); ?>,
-            maxHp: <?= json_encode(intval($player_data['curr_max_hp'] ?? 100)); ?>,
-            atk: <?= json_encode(intval($player_data['curr_atk'] ?? 10)); ?>,
-            def: <?= json_encode(intval($player_data['curr_def'] ?? 5)); ?>,
-            spd: <?= json_encode($player_speed); ?>,
-            isDefending: false
-        },
-        enemies: <?= json_encode($active_enemies); ?>,
-        turnOrder: <?= json_encode($turn_order_stack); ?>,
-        inventory: <?= json_encode($player_inventory); ?>,
-        skills: <?= json_encode($player_skills); ?>,
-        selectedSkill: null,
-        isPlayerTurn: true,
-        battleFinished: false
-    };
+    if (typeof window.combatState === 'undefined') {
+        window.combatState = {
+            player: {
+                id: <?= json_encode($player_id); ?>,
+                name: <?= json_encode($player_data['name']); ?>,
+                hp: <?= json_encode(intval($player_data['curr_hp'] ?? $player_data['curr_max_hp'] ?? 100)); ?>,
+                maxHp: <?= json_encode(intval($player_data['curr_max_hp'] ?? 100)); ?>,
+                atk: <?= json_encode(intval($player_data['str'] ?? 10)); ?>,
+                def: <?= json_encode(intval($player_data['def'] ?? 5)); ?>,
+                dex: <?= json_encode($player_dex); ?>,
+                int: <?= json_encode($player_data['int'] ?? 10); ?>,
+                mana: 1,
+                isDefending: false
+            },
+            enemies: <?= json_encode($active_enemies); ?>,
+            turnOrder: <?= json_encode($turn_order_stack); ?>,
+            inventory: <?= json_encode($player_inventory); ?>,
+            skills: <?= json_encode($player_skills); ?>,
+            skillCooldowns: {},
+            selectedSkill: null,
+            isPlayerTurn: true,
+            battleFinished: false
+        };
+    } else {
+        window.combatState.player.hp = <?= json_encode(intval($player_data['curr_hp'] ?? $player_data['curr_max_hp'] ?? 100)); ?>;
+        window.combatState.player.mana = 1;
+        window.combatState.player.isDefending = false;
+        window.combatState.enemies = <?= json_encode($active_enemies); ?>;
+        window.combatState.turnOrder = <?= json_encode($turn_order_stack); ?>;
+        window.combatState.skillCooldowns = {};
+        window.combatState.selectedSkill = null;
+        window.combatState.isPlayerTurn = true;
+        window.combatState.battleFinished = false;
+    }
 
     function selectEnemyTarget(enemyId) {
-        if (combatState.battleFinished || !combatState.isPlayerTurn) return;
-        const targetEnemy = combatState.enemies.find(e => e.id === enemyId);
+        if (window.combatState.battleFinished || !window.combatState.isPlayerTurn) return;
+        const targetEnemy = window.combatState.enemies.find(e => e.id === enemyId);
 
         if (!targetEnemy || !targetEnemy.alive) return;
-        if (combatState.selectedSkill === null) {
+        if (window.combatState.selectedSkill === null) {
             updateCombatLog("Select Attack or a Skill first!");
             return;
         }
 
-        combatState.isPlayerTurn = false;
+        window.combatState.isPlayerTurn = false;
 
-        if (combatState.selectedSkill.skill_area === 'all' || combatState.selectedSkill.skill_area === 'enemy_all' || combatState.selectedSkill.skill_area === 'aoe') {
-            executeAoESkill(combatState.selectedSkill);
+        const area = window.combatState.selectedSkill.skill_area ? window.combatState.selectedSkill.skill_area.toLowerCase() : 'enemy';
+        if (area === 'all' || area === 'enemy_all' || area === 'aoe') {
+            executeAoESkill(window.combatState.selectedSkill);
         } else {
-            executeSkillOnTarget(combatState.selectedSkill, targetEnemy);
+            executeSkillOnTarget(window.combatState.selectedSkill, targetEnemy);
         }
     }
 
     function executePlayerAction(actionType) {
-        if (!combatState.isPlayerTurn || combatState.battleFinished) return;
+        if (!window.combatState.isPlayerTurn || window.combatState.battleFinished) return;
 
         if (actionType === 'attack') {
             const basicAttack = {
                 skill_name: 'Attack',
-                skill_atk: combatState.player.atk,
-                skill_area: 'enemy'
+                skill_atk: window.combatState.player.atk,
+                skill_area: 'enemy',
+                mana_cost: 0
             };
 
-            if (combatState.selectedSkill && combatState.selectedSkill.skill_name === 'Attack') {
+            if (window.combatState.selectedSkill && window.combatState.selectedSkill.skill_name === 'Attack') {
                 cancelSkillSelection();
                 return;
             }
 
-            combatState.selectedSkill = basicAttack;
+            window.combatState.selectedSkill = basicAttack;
             document.getElementById('btn-attack').style.opacity = '0.5';
             document.getElementById('skills-panel').style.display = 'none';
             document.getElementById('targets-panel').style.display = 'block';
@@ -349,27 +399,36 @@ if (!empty($player_data)) {
         }
 
         if (actionType === 'defend') {
-            combatState.player.isDefending = true;
-            updateCombatLog(`${combatState.player.name} takes a defensive stance! Defense is doubled.`);
-            cancelSkillSelection();
-            combatState.isPlayerTurn = false;
-            setTimeout(triggerEnemyTurn, 1500);
+            window.combatState.player.isDefending = true;
+            updateCombatLog(`${window.combatState.player.name} takes a defensive stance! Defense is doubled.`);
+            consumeResourcesAndApplyCooldowns();
+            endPlayerTurn();
         }
     }
 
     function executePlayerSkill(skill, event) {
-        if (!combatState.isPlayerTurn || combatState.battleFinished) return;
+        if (!window.combatState.isPlayerTurn || window.combatState.battleFinished) return;
 
-        if (combatState.selectedSkill && combatState.selectedSkill.skill_id === skill.skill_id) {
+        if (window.combatState.player.mana < skill.mana_cost) {
+            updateCombatLog(`🔮 Not enough mana! Requires ${skill.mana_cost} Mana (Current: ${window.combatState.player.mana}).`);
+            return;
+        }
+
+        if (window.combatState.skillCooldowns[skill.skill_id] > 0) {
+            updateCombatLog(`⏳ Skill is on cooldown for ${window.combatState.skillCooldowns[skill.skill_id]} more turn(s)!`);
+            return;
+        }
+
+        if (window.combatState.selectedSkill && window.combatState.selectedSkill.skill_id === skill.skill_id) {
             cancelSkillSelection();
             return;
         }
 
-        combatState.selectedSkill = skill;
+        window.combatState.selectedSkill = skill;
         document.querySelectorAll('.skill-btn').forEach(btn => btn.style.opacity = '0.5');
 
         if (skill.skill_area === 'self') {
-            combatState.isPlayerTurn = false;
+            window.combatState.isPlayerTurn = false;
             executeSkillOnSelf(skill);
         } else {
             document.getElementById('skills-panel').style.display = 'none';
@@ -379,21 +438,33 @@ if (!empty($player_data)) {
     }
 
     function cancelSkillSelection() {
-        combatState.selectedSkill = null;
+        window.combatState.selectedSkill = null;
         document.getElementById('btn-attack').style.opacity = '1';
         document.querySelectorAll('.skill-btn').forEach(btn => btn.style.opacity = '1');
         document.getElementById('targets-panel').style.display = 'none';
         document.getElementById('skills-panel').style.display = 'block';
-        updateCombatLog("Action cancelled. Choose an action.");
+        updateSkillButtonsCooldownUI();
+    }
+
+    function consumeResourcesAndApplyCooldowns() {
+        if (window.combatState.selectedSkill && window.combatState.selectedSkill.skill_name !== 'Attack') {
+            window.combatState.player.mana -= window.combatState.selectedSkill.mana_cost;
+            document.getElementById('player-mana-display').innerText = window.combatState.player.mana;
+
+            if (window.combatState.selectedSkill.skill_id) {
+                window.combatState.skillCooldowns[window.combatState.selectedSkill.skill_id] = window.combatState.selectedSkill.cooldown;
+            }
+        }
     }
 
     function executeAoESkill(skill) {
-        updateCombatLog(`${combatState.player.name} unleashes ${skill.skill_name} across the enemy line!`);
+        updateCombatLog(`${window.combatState.player.name} unleashes ${skill.skill_name} across the enemy line!`);
+        consumeResourcesAndApplyCooldowns();
 
-        combatState.enemies.forEach(enemy => {
+        window.combatState.enemies.forEach(enemy => {
             if (!enemy.alive) return;
 
-            const basePower = parseInt(skill.skill_atk) || combatState.player.atk;
+            const basePower = parseInt(skill.skill_atk) || parseInt(skill.skill_str) || window.combatState.player.atk;
             const skillDamage = Math.max(1, basePower - enemy.def);
 
             enemy.hp -= skillDamage;
@@ -430,7 +501,8 @@ if (!empty($player_data)) {
     }
 
     function executeSkillOnTarget(skill, enemy) {
-        const basePower = parseInt(skill.skill_atk) || combatState.player.atk;
+        consumeResourcesAndApplyCooldowns();
+        const basePower = parseInt(skill.skill_atk) || parseInt(skill.skill_str) || window.combatState.player.atk;
         const skillDamage = Math.max(1, basePower - enemy.def);
 
         enemy.hp -= skillDamage;
@@ -452,7 +524,7 @@ if (!empty($player_data)) {
             setTimeout(() => dmgPop.classList.add('d-none'), 1200);
         }
 
-        updateCombatLog(`${combatState.player.name} uses ${skill.skill_name} on ${enemy.name} for ${skillDamage} damage!`);
+        updateCombatLog(`${window.combatState.player.name} uses ${skill.skill_name} on ${enemy.name} for ${skillDamage} damage!`);
 
         if (!enemy.alive) {
             const btn = document.getElementById(`list-target-btn-${enemy.id}`);
@@ -469,37 +541,64 @@ if (!empty($player_data)) {
     }
 
     function executeSkillOnSelf(skill) {
+        consumeResourcesAndApplyCooldowns();
         if (skill.skill_heal > 0) {
-            combatState.player.hp += parseInt(skill.skill_heal);
-            if (combatState.player.hp > combatState.player.maxHp) combatState.player.hp = combatState.player.maxHp;
+            window.combatState.player.hp += parseInt(skill.skill_heal);
+            if (window.combatState.player.hp > window.combatState.player.maxHp) window.combatState.player.hp = window.combatState.player.maxHp;
 
-            // Update visual health bar width percentage in sidebar
             const pBar = document.getElementById('player-hp-bar');
-            if (pBar) pBar.style.width = `${(combatState.player.hp / combatState.player.maxHp) * 100}%`;
+            if (pBar) pBar.style.width = `${(window.combatState.player.hp / window.combatState.player.maxHp) * 100}%`;
 
-            // Update numeric text element in sidebar
             const pText = document.getElementById('player-hp-text');
-            if (pText) pText.innerText = `${combatState.player.hp} / ${combatState.player.maxHp}`;
+            if (pText) pText.innerText = `${window.combatState.player.hp} / ${window.combatState.player.maxHp}`;
 
-            updateCombatLog(`${combatState.player.name} casts ${skill.skill_name} and recovers ${skill.skill_heal} HP!`);
+            updateCombatLog(`${window.combatState.player.name} casts ${skill.skill_name} and recovers ${skill.skill_heal} HP!`);
         }
         clearVisualIndicators();
         setTimeout(checkBattleResult, 1800);
     }
 
     function clearVisualIndicators() {
-        combatState.selectedSkill = null;
+        window.combatState.selectedSkill = null;
         document.getElementById('btn-attack').style.opacity = '1';
         document.querySelectorAll('.skill-btn').forEach(btn => btn.style.opacity = '1');
         document.getElementById('targets-panel').style.display = 'none';
         document.getElementById('skills-panel').style.display = 'block';
+        updateSkillButtonsCooldownUI();
+    }
+
+    function updateSkillButtonsCooldownUI() {
+        Object.keys(window.combatState.skillCooldowns).forEach(skillId => {
+            const turnsLeft = window.combatState.skillCooldowns[skillId];
+            const btn = document.getElementById(`skill-btn-${skillId}`);
+            if (btn) {
+                const overlay = btn.querySelector('.cd-overlay');
+                if (turnsLeft > 0) {
+                    if (overlay) {
+                        overlay.innerText = turnsLeft;
+                        overlay.classList.replace('d-none', 'd-flex');
+                    }
+                    btn.style.pointerEvents = 'none';
+                } else {
+                    if (overlay) overlay.classList.replace('d-flex', 'd-none');
+                    btn.style.pointerEvents = 'auto';
+                    btn.style.opacity = '1';
+                }
+            }
+        });
+    }
+
+    function endPlayerTurn() {
+        cancelSkillSelection();
+        window.combatState.isPlayerTurn = false;
+        setTimeout(triggerEnemyTurn, 1000);
     }
 
     function triggerEnemyTurn() {
-        if (combatState.battleFinished) return;
+        if (window.combatState.battleFinished) return;
         updateCombatLog("Enemies are counter-attacking...");
 
-        const livingEnemies = combatState.enemies.filter(e => e.alive);
+        const livingEnemies = window.combatState.enemies.filter(e => e.alive);
         let sequenceDelay = 1000;
 
         if (livingEnemies.length === 0) {
@@ -507,29 +606,25 @@ if (!empty($player_data)) {
             return;
         }
 
-        livingEnemies.forEach((enemy) => {
+        livingEnemies.forEach((enemy, idx) => {
             setTimeout(() => {
-                if (combatState.player.hp <= 0 || combatState.battleFinished) return;
+                if (window.combatState.player.hp <= 0 || window.combatState.battleFinished) return;
 
-                let effectiveDef = combatState.player.def;
-                if (combatState.player.isDefending) effectiveDef = combatState.player.def * 2;
+                let effectiveDef = window.combatState.player.def;
+                if (window.combatState.player.isDefending) effectiveDef = window.combatState.player.def * 2;
 
-                let enemyDmg = Math.max(1, enemy.atk - effectiveDef);
-                combatState.player.hp -= enemyDmg;
-                if (combatState.player.hp < 0) combatState.player.hp = 0;
+                let enemyDmg = Math.max(1, enemy.str - effectiveDef);
+                window.combatState.player.hp -= enemyDmg;
+                if (window.combatState.player.hp < 0) window.combatState.player.hp = 0;
 
-                // 1. DYNAMICALLY UPDATE VISUAL SIDEBAR HP BAR
                 const pBar = document.getElementById('player-hp-bar');
                 if (pBar) {
-                    pBar.style.width = `${(combatState.player.hp / combatState.player.maxHp) * 100}%`;
-                    pBar.setAttribute('aria-valuenow', combatState.player.hp);
+                    pBar.style.width = `${(window.combatState.player.hp / window.combatState.player.maxHp) * 100}%`;
+                    pBar.setAttribute('aria-valuenow', window.combatState.player.hp);
                 }
 
-                // 2. DYNAMICALLY UPDATE NUMERIC SIDEBAR HP TEXT
                 const pText = document.getElementById('player-hp-text');
-                if (pText) {
-                    pText.innerText = `${combatState.player.hp} / ${combatState.player.maxHp}`;
-                }
+                if (pText) pText.innerText = `${window.combatState.player.hp} / ${window.combatState.player.maxHp}`;
 
                 const playerDmgPop = document.getElementById('player-damage-pop');
                 if (playerDmgPop) {
@@ -538,32 +633,58 @@ if (!empty($player_data)) {
                     setTimeout(() => playerDmgPop.classList.add('d-none'), 1000);
                 }
 
-                updateCombatLog(`${enemy.name} strikes ${combatState.player.name} for ${enemyDmg} damage!`);
+                updateCombatLog(`${enemy.name} strikes ${window.combatState.player.name} for ${enemyDmg} damage!`);
 
-                if (combatState.player.hp <= 0) {
-                    combatState.battleFinished = true;
+                if (window.combatState.player.hp <= 0) {
+                    window.combatState.battleFinished = true;
                     updateCombatLog("Defeat... You have fallen in battle.");
+                }
+
+                if (idx === livingEnemies.length - 1 && window.combatState.player.hp > 0) {
+                    setTimeout(startNewTurnUpkeepPhase, 1200);
                 }
             }, sequenceDelay);
 
             sequenceDelay += 1500;
         });
+    }
 
-        setTimeout(() => {
-            if (combatState.player.hp > 0 && !combatState.battleFinished) {
-                combatState.player.isDefending = false;
-                combatState.isPlayerTurn = true;
-                updateCombatLog(`${combatState.player.name}'s turn! Choose an action.`);
+    function startNewTurnUpkeepPhase() {
+        if (window.combatState.battleFinished || window.combatState.player.hp <= 0) return;
+
+        Object.keys(window.combatState.skillCooldowns).forEach(skillId => {
+            if (window.combatState.skillCooldowns[skillId] > 0) {
+                window.combatState.skillCooldowns[skillId]--;
             }
-        }, sequenceDelay);
+        });
+
+        window.combatState.player.isDefending = false;
+
+        let baseManaRegen = 1;
+        const intStat = parseInt(window.combatState.player.int || 10);
+        const doubleManaChance = Math.min(0.75, intStat * 0.02);
+        const roll = Math.random();
+
+        if (roll <= doubleManaChance) {
+            baseManaRegen = 2;
+            updateCombatLog("✨ INT Proc! Mimi recovers 2 Mana this turn!");
+        } else {
+            updateCombatLog("Mimi recovers 1 Mana.");
+        }
+
+        window.combatState.player.mana += baseManaRegen;
+        document.getElementById('player-mana-display').innerText = window.combatState.player.mana;
+
+        window.combatState.isPlayerTurn = true;
+        updateSkillButtonsCooldownUI();
     }
 
     function checkBattleResult() {
-        const anyEnemiesAlive = combatState.enemies.some(e => e.alive);
+        const anyEnemiesAlive = window.combatState.enemies.some(e => e.alive);
         if (!anyEnemiesAlive) {
-            combatState.battleFinished = true;
+            window.combatState.battleFinished = true;
             calculateRewardsAndDrops();
-        } else if (!combatState.isPlayerTurn) {
+        } else if (!window.combatState.isPlayerTurn) {
             triggerEnemyTurn();
         }
     }
@@ -573,14 +694,10 @@ if (!empty($player_data)) {
 
         let totalExpGained = 0;
         let generatedDrops = [];
-
-        // FIX: Get a count based on the ORIGINAL number of enemies generated
-        // Or just use the array length before it was mutated
-        const enemyCount = combatState.enemies.length;
+        const enemyCount = window.combatState.enemies.length;
 
         for (let i = 0; i < enemyCount; i++) {
             totalExpGained += Math.floor(randRange(15, 30));
-            // Drop rate calculation
             if (Math.random() <= 0.65) {
                 generatedDrops.push({
                     item_id: 1,
@@ -589,7 +706,6 @@ if (!empty($player_data)) {
             }
         }
 
-        // Add a slight delay to ensure the UI logs the victory message first
         setTimeout(() => {
             saveRewardsToDatabase(totalExpGained, generatedDrops);
         }, 1500);
@@ -597,7 +713,7 @@ if (!empty($player_data)) {
 
     function saveRewardsToDatabase(exp, drops) {
         const payload = {
-            player_id: combatState.player.id,
+            player_id: window.combatState.player.id,
             exp_gained: exp,
             items_dropped: drops
         };
@@ -620,22 +736,17 @@ if (!empty($player_data)) {
     }
 
     function showVictoryRedirect(summaryText) {
-        // FIX: Properly select the element
         const dialogBox = document.getElementById('combat-dialogue-box');
-
-        // Check if the element actually exists before trying to modify it
         if (dialogBox) {
             dialogBox.style.maxHeight = "none";
             dialogBox.style.height = "auto";
             dialogBox.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center w-100 py-1">
-                <p class="m-0 fw-bold">${summaryText}</p>
-                <a href="../index.php?p=level1&id=${combatState.player.id}" class="btn btn-sm text-white fw-bold" style="background-color: #8B5A3C; border: 2px solid #5A3A2A;">Return to Map</a>
-            </div>`;
+        <div class="d-flex justify-content-between align-items-center w-100 py-1">
+            <p class="m-0 fw-bold">${summaryText}</p>
+            <a href="../index.php?p=level1&id=${window.combatState.player.id}" class="btn btn-sm text-white fw-bold" style="background-color: #8B5A3C; border: 2px solid #5A3A2A;">Return to Map</a>
+        </div>`;
         } else {
-            // Fallback in case the element was removed from the DOM
-            console.error("Combat dialogue box not found!");
-            window.location.href = `../index.php?p=level1&id=${combatState.player.id}`;
+            window.location.href = `../index.php?p=level1&id=${window.combatState.player.id}`;
         }
     }
 
@@ -647,4 +758,8 @@ if (!empty($player_data)) {
         const logText = document.getElementById('combat-log-text');
         if (logText) logText.innerText = message;
     }
+
+    // Global baseline elements initialization handlers
+    document.getElementById('player-mana-display').innerText = window.combatState.player.mana;
+    updateSkillButtonsCooldownUI();
 </script>

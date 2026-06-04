@@ -156,7 +156,7 @@ $current_hp = max(0, min($current_hp, $max_hp));
 $active_enemies = [];
 $turn_order_stack = []; // 🛡️ Define the array to fix the warning
 $encounter_limit = rand(2, 5);
-$stmt2 = mysqli_prepare($conn, "SELECT e.enemy_id, e.enemy_name, e.sprite, es.hp, es.atk, es.def, es.spd 
+$stmt2 = mysqli_prepare($conn, "SELECT e.enemy_id, e.enemy_name, e.sprite, es.enemy_hp, es.enemy_str, es.enemy_def, es.enemy_dex, es.enemy_int, es.enemy_fth 
                                  FROM enemy e 
                                  JOIN enemy_stats es ON e.enemy_id = es.enemy_id 
                                  ORDER BY RAND() LIMIT ?");
@@ -175,7 +175,12 @@ while ($row = mysqli_fetch_assoc($res2)) {
     // Mapping internal database names to what the HTML expects
     $row['id'] = $row['enemy_id'];
     $row['name'] = $row['enemy_name'];
-    $row['max_hp'] = $row['hp'];
+    $row['max_hp'] = $row['enemy_hp'];
+    $row['str'] = $row['enemy_str'];
+    $row['def'] = $row['enemy_def'];
+    $row['dex'] = $row['enemy_dex'];
+    $row['int'] = $row['enemy_int'];
+    $row['fth'] = $row['enemy_fth'];
     $row['alive'] = true;
     $active_enemies[] = $row;
 
