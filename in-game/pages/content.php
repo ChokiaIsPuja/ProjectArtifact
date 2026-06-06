@@ -12,6 +12,8 @@ if(empty($_GET['p'])){
     $content =  __DIR__ . '/shop1.php';
 } else if($_GET['p'] == "maplv1"){
     $content =  __DIR__ . '/maplv1.php';
+}else if($_GET['p'] == "event1"){
+    $content =  __DIR__ . '/events1.php';
 } else {
     header("location:content.php?p=level1");
 }
