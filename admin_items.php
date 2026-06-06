@@ -278,7 +278,7 @@ $itemsResult = mysqli_query($conn, $allQuery);
                             <tr style="border-bottom: 1px solid #29292e;">
                                 <td style="padding: 10px 6px; color: #7c7c8a;"><?= $row['item_id'] ?></td>
                                 <td style="padding: 10px 6px;">
-                                    <img src="<?= htmlspecialchars($row['sprite']) ?>" alt="icon" style="width: 32px; height: 32px; image-rendering: pixelated; background: #121214; border-radius: 4px; padding: 2px; border: 1px solid #323238; display: block;">
+                                    <img src="asset/img/items/<?= htmlspecialchars($row['sprite']) ?>" alt="icon" style="width: 32px; height: 32px; image-rendering: pixelated; background: #121214; border-radius: 4px; padding: 2px; border: 1px solid #323238; display: block;">
                                 </td>
                                 <td style="padding: 10px 6px; font-weight: bold; color: #fff;"><?= htmlspecialchars($row['item_name']) ?></td>
                                 <td style="padding: 10px 6px;"><span style="background: #29292e; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem;"><?= htmlspecialchars($row['item_type']) ?></span></td>

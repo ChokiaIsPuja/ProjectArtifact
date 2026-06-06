@@ -25,7 +25,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'checkout') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="asset/css/bootstrap.min.css">
     <link rel="stylesheet" href="asset/css/preloader.css">
-    <title>Ro-Golike</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <title>Project Artifact</title>
     <style>
         body {
             background-image: url('asset/img/background/Illustration12.jpg');
