@@ -63,8 +63,6 @@ if (!empty($row)) {
 // Save player data before it gets overwritten by the enemy loop
 $player_data = $row;
 
-// --- 2. FETCH ENEMIES ---
-// ... Leave the rest of your Section 2 and Section 3 exactly as they are ...
 // --- STEP 2: LOAD SIDEBAR EQUIPPED SPRITES & NAMES ---
 $equipped_items = ['helmet' => null, 'armor' => null, 'boots' => null, 'accessory' => null, 'armaments' => null];
 
@@ -89,7 +87,7 @@ if ($player_id > 0) {
                     $equipped_items[$slot] = $equip_row;
                 }
             }
-            mysqli_stmt_close($stmt_load); // 🛡️ CLOSED HERE
+            mysqli_stmt_close($stmt_load); 
         }
     } catch (Exception $e) {
         error_log("Sidebar Equipment Loading Error: " . $e->getMessage());
@@ -98,9 +96,9 @@ if ($player_id > 0) {
 
 
 // --- STEP 3: CALCULATE RECONCILED ATTRIBUTE MODIFIERS ---
-$base_atk = intval($row['attack'] ?? $row['curr_atk'] ?? 0);
-$base_def = intval($row['defense'] ?? $row['curr_def'] ?? 0);
-$base_spd = intval($row['spd'] ?? $row['curr_spd'] ?? 0);
+$base_atk = intval($row['attack'] ?? $row['curr_atk'] ?? $row['curr_str'] ?? 10);
+$base_def = intval($row['defense'] ?? $row['curr_def'] ?? 5);
+$base_spd = intval($row['spd'] ?? $row['curr_spd'] ?? $row['curr_dex'] ?? 10);
 $base_max_hp = intval($row['base_hp'] ?? $row['curr_max_hp'] ?? 100);
 
 $total_atk = $base_atk;
@@ -123,7 +121,7 @@ if ($player_id > 0) {
             mysqli_stmt_execute($stmt_stats);
             $stats_result = mysqli_stmt_get_result($stmt_stats);
             $gear = mysqli_fetch_assoc($stats_result);
-            mysqli_stmt_close($stmt_stats); // 🛡️ CLOSED HERE
+            mysqli_stmt_close($stmt_stats); 
 
             $total_atk    = $base_atk + (int)($gear['gear_atk'] ?? 0);
             $total_def    = $base_def + (int)($gear['gear_def'] ?? 0);
@@ -154,7 +152,7 @@ $current_hp = max(0, min($current_hp, $max_hp));
 
 // --- 2. FETCH ENEMIES ---
 $active_enemies = [];
-$turn_order_stack = []; // 🛡️ Define the array to fix the warning
+$turn_order_stack = []; 
 $encounter_limit = rand(2, 5);
 $stmt2 = mysqli_prepare($conn, "SELECT e.enemy_id, e.enemy_name, e.sprite, es.enemy_hp, es.enemy_str, es.enemy_def, es.enemy_dex, es.enemy_int, es.enemy_fth 
                                  FROM enemy e 
@@ -166,32 +164,52 @@ $res2 = mysqli_stmt_get_result($stmt2);
 
 // Add the player to the global turn order list first
 $turn_order_stack[] = [
-    'name' => $player_data['player_name'] ?? $player_data['name'] ?? 'Mimi',
-    'type' => 'player',
-    'sprite' => $player_data['avatar'] ?? 'player_avatar.png'
+    'id'       => null,
+    'name'     => $player_data['player_name'] ?? $player_data['name'] ?? 'Mimi',
+    'type'     => 'player',
+    'sprite'   => $player_data['avatar'] ?? 'player_avatar.png',
+    'spd'      => $total_spd,
+    'curr_spd' => $total_spd
 ];
 
-while ($row = mysqli_fetch_assoc($res2)) {
+$i = 0;
+while ($enemy_row = mysqli_fetch_assoc($res2)) {
     // Mapping internal database names to what the HTML expects
-    $row['id'] = $row['enemy_id'];
-    $row['name'] = $row['enemy_name'];
-    $row['max_hp'] = $row['enemy_hp'];
-    $row['str'] = $row['enemy_str'];
-    $row['def'] = $row['enemy_def'];
-    $row['dex'] = $row['enemy_dex'];
-    $row['int'] = $row['enemy_int'];
-    $row['fth'] = $row['enemy_fth'];
-    $row['alive'] = true;
-    $active_enemies[] = $row;
-
-    // Add this enemy unit to the turn order stack for index.php to read safely
-    $turn_order_stack[] = [
-        'name' => $row['enemy_name'],
-        'type' => 'enemy',
-        'sprite' => $row['sprite']
+    $enemy_instance = [
+        'id'         => $i,
+        'enemy_id'   => $enemy_row['enemy_id'],
+        'name'       => $enemy_row['enemy_name'] . ' ' . ($i + 1),
+        'enemy_name' => $enemy_row['enemy_name'],
+        'sprite'     => $enemy_row['sprite'],
+        'hp'         => intval($enemy_row['enemy_hp']),
+        'max_hp'     => intval($enemy_row['enemy_hp']),
+        'str'        => intval($enemy_row['enemy_str']),
+        'def'        => intval($enemy_row['enemy_def']),
+        'dex'        => intval($enemy_row['enemy_dex']),
+        'curr_dex'   => intval($enemy_row['enemy_dex']),
+        'int'        => intval($enemy_row['enemy_int']),
+        'fth'        => intval($enemy_row['enemy_fth']),
+        'alive'      => true
     ];
+    $active_enemies[] = $enemy_instance;
+
+    // Add this enemy unit to the turn order stack with full parameters
+    $turn_order_stack[] = [
+        'id'       => $i,
+        'name'     => $enemy_instance['name'],
+        'type'     => 'enemy',
+        'sprite'   => $enemy_instance['sprite'],
+        'spd'      => $enemy_instance['dex'],
+        'curr_spd' => $enemy_instance['curr_dex']
+    ];
+    $i++;
 }
-mysqli_stmt_close($stmt2); // 🛡️ Connection released
+mysqli_stmt_close($stmt2); 
+
+// Sort the turn order by speed safely on page load
+usort($turn_order_stack, function ($a, $b) {
+    return $b['spd'] <=> $a['spd'];
+});
 ?>
 
 <!DOCTYPE html>
@@ -229,21 +247,19 @@ mysqli_stmt_close($stmt2); // 🛡️ Connection released
 
 <body class="bg-dark" style="font-family: 'Jaro', sans-serif; font-weight: 400; background-color: #805138;">
 
-
     <nav class="text-white position-fixed p-3"
         style="height: calc(100vh - 30px); width: 300px; top: 15px; left: 15px; z-index: 1000; background-color: #D39670;">
 
         <h1 class="h5 text-center" style="font-size: 30px; margin-top:15px; margin-bottom: 30px;">Turn Order</h1>
 
         <div class="container-fluid mt-2 px-2" style="background-color: #D39670;">
-            <div class="mb-3 p-4" style="max-height: 540px; height:400px; overflow-y: auto; overflow-x: hidden; padding: 5px; border-radius: 8px; background-color: #C08560; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);">
+            <div id="turn-order-list" class="mb-3 p-4" style="max-height: 540px; height:400px; overflow-y: auto; overflow-x: hidden; padding: 5px; border-radius: 8px; background-color: #C08560; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);">
 
                 <?php
                 foreach ($turn_order_stack as $combatant):
-                    // Fix: Only append the ID if it exists (i.e., for enemies)
                     $cardId = ($combatant['type'] === 'player')
                         ? 'turn-card-player'
-                        : 'turn-card-enemy-' . ($combatant['id'] ?? 'unknown');
+                        : 'turn-card-enemy-' . $combatant['id'];
                 ?>
                     <div class="row g-0 mb-2 text-center align-items-center combatant-turn-card"
                         id="<?= $cardId ?>"
@@ -261,20 +277,7 @@ mysqli_stmt_close($stmt2); // 🛡️ Connection released
 
                         <div class="col-3 text-end">
                             <span class="badge text-dark bg-white font-monospace border border-dark">
-                                <?php
-                                if ($combatant['type'] === 'player') {
-                                    echo isset($player_speed) ? $player_speed : 10;
-                                } else {
-                                    $enemy_speed = 0;
-                                    foreach ($active_enemies as $enemy) {
-                                        if ($enemy['name'] === $combatant['name']) {
-                                            $enemy_speed = $enemy['curr_spd'] ?? $enemy['spd'] ?? 0;
-                                            break;
-                                        }
-                                    }
-                                    echo $enemy_speed;
-                                }
-                                ?>
+                                <?= $combatant['spd'] ?>
                             </span>
                         </div>
                     </div>
@@ -332,8 +335,8 @@ mysqli_stmt_close($stmt2); // 🛡️ Connection released
             </div>
         </div>
     </div>
+    
     <?php
-    // 1. THE PROCEDURAL LOADER BLOCK (Matching your new direct player_id relation)
     $inventory_rows = [];
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
@@ -349,7 +352,6 @@ mysqli_stmt_close($stmt2); // 🛡️ Connection released
                     INNER JOIN item it ON b.item_id = it.item_id
                     WHERE b.player_id = ? AND it.item_type = 'consumables'";
 
-            // 🛠️ CHANGED: Switched entirely to procedural mysqli functions
             $stmt_inv = mysqli_prepare($conn, $inventory_query);
             if ($stmt_inv) {
                 mysqli_stmt_bind_param($stmt_inv, "i", $id);
@@ -430,7 +432,7 @@ mysqli_stmt_close($stmt2); // 🛡️ Connection released
             </div>
         </div>
     </div>
-    <?php error_log("DEBUG BEFORE MODAL: max_hp=$max_hp, current_hp=$current_hp"); ?>
+    
     <div class="modal fade" id="modalStats" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered text-dark">
             <div class="modal-content" style="background-color: #FAC79B; border-radius: 14px; border: none;">
@@ -551,360 +553,6 @@ mysqli_stmt_close($stmt2); // 🛡️ Connection released
         });
     </script>
 
-    <script>
-        const map = document.getElementById('map');
-        const viewport = document.querySelector('.viewport');
-
-        let scale = 1;
-        let translateX = -700;
-        let translateY = -640;
-        let isDragging = false;
-        let startX;
-        let startY;
-
-        function updateMap() {
-            if (map) {
-                map.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-            }
-        }
-
-        if (viewport && map) {
-            viewport.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                startX = e.clientX - translateX;
-                startY = e.clientY - translateY;
-                map.style.cursor = 'grabbing';
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                translateX = e.clientX - startX;
-                translateY = e.clientY - startY;
-                updateMap();
-            });
-
-            document.addEventListener('mouseup', () => {
-                isDragging = false;
-                map.style.cursor = 'grab';
-            });
-        }
-
-        const zoomInBtn = document.getElementById('zoomIn');
-        if (zoomInBtn) {
-            zoomInBtn.addEventListener('click', () => {
-                scale += 0.1;
-                updateMap();
-            });
-        }
-
-        const zoomOutBtn = document.getElementById('zoomOut');
-        if (zoomOutBtn) {
-            zoomOutBtn.addEventListener('click', () => {
-                scale -= 0.1;
-                if (scale < 0.2) scale = 0.2;
-                updateMap();
-            });
-        }
-
-        const centerMapBtn = document.getElementById('centerMap');
-        if (centerMapBtn) {
-            centerMapBtn.addEventListener('click', () => {
-                translateX = -700;
-                translateY = -640;
-                scale = 1;
-                updateMap();
-            });
-        }
-    </script>
-
-    <script>
-        const PROXIMITY_THRESHOLD = 80;
-
-        function getNodeData() {
-            const mapEl = document.getElementById("map");
-            if (!mapEl) return [];
-            const mapRect = mapEl.getBoundingClientRect();
-            const nodes = Array.from(document.querySelectorAll(".rpg-node"));
-
-            return nodes.map(n => {
-                const r = n.getBoundingClientRect();
-                return {
-                    id: n.id,
-                    x: (r.left + r.width / 2) - mapRect.left,
-                    y: (r.top + r.height / 2) - mapRect.top
-                };
-            });
-        }
-
-        function lineIntersects(A, B, C, D) {
-            function ccw(p1, p2, p3) {
-                return (p3.y - p1.y) * (p2.x - p1.x) > (p2.y - p1.y) * (p3.x - p1.x);
-            }
-            if (A.id === C.id || A.id === D.id || B.id === C.id || B.id === D.id) return false;
-            return ccw(A, C, D) !== ccw(B, C, D) && ccw(A, B, C) !== ccw(A, B, D);
-        }
-
-        function generateEdges() {
-            const data = getNodeData();
-            const edges = [];
-            const edgeSet = new Set();
-
-            if (data.length === 0) return edges;
-
-            const columnsList = [];
-            const sortedNodes = [...data].sort((a, b) => a.x - b.x);
-
-            sortedNodes.forEach(node => {
-                let targetColumn = columnsList.find(col => Math.abs(col[0].x - node.x) < PROXIMITY_THRESHOLD);
-                if (targetColumn) {
-                    targetColumn.push(node);
-                } else {
-                    columnsList.push([node]);
-                }
-            });
-
-            const columns = columnsList
-                .sort((a, b) => a[0].x - b[0].x)
-                .map(col => col.sort((a, b) => a.y - b.y));
-
-            const nodeLookup = new Map(data.map(n => [n.id, n]));
-
-            for (let i = 0; i < columns.length - 1; i++) {
-                const currentColumn = columns[i];
-                const nextColumn = columns[i + 1];
-
-                currentColumn.forEach((currNode, currIdx) => {
-                    let targets = [];
-
-                    if (nextColumn.length === 1) {
-                        targets.push(nextColumn[0]);
-                    } else if (currentColumn.length === 1) {
-                        targets = nextColumn.slice(0, 3);
-                    } else {
-                        nextColumn.forEach((nextNode, nextIdx) => {
-                            if (Math.abs(currIdx - nextIdx) <= 1) {
-                                if (Math.abs(currNode.y - nextNode.y) < 250) {
-                                    targets.push(nextNode);
-                                }
-                            }
-                        });
-
-                        if (targets.length === 0 && nextColumn.length > 0) {
-                            let closest = nextColumn[0];
-                            let minDist = Math.abs(currNode.y - nextColumn[0].y);
-                            nextColumn.forEach(n => {
-                                let d = Math.abs(currNode.y - n.y);
-                                if (d < minDist) {
-                                    minDist = d;
-                                    closest = n;
-                                }
-                            });
-                            targets.push(closest);
-                        }
-                    }
-
-                    targets.forEach(target => {
-                        const key = `${currNode.id}->${target.id}`;
-                        if (edgeSet.has(key)) return;
-
-                        let crossesExistingEdge = false;
-                        for (let existingEdge of edges) {
-                            const A = nodeLookup.get(existingEdge.from);
-                            const B = nodeLookup.get(existingEdge.to);
-                            const C = currNode;
-                            const D = target;
-
-                            if (A && B && lineIntersects(A, B, C, D)) {
-                                crossesExistingEdge = true;
-                                break;
-                            }
-                        }
-
-                        if (!crossesExistingEdge) {
-                            edgeSet.add(key);
-                            edges.push({
-                                from: currNode.id,
-                                to: target.id
-                            });
-                        }
-                    });
-                });
-            }
-
-            return edges;
-        }
-
-        function drawLines() {
-            const svg = document.getElementById("links");
-            if (!svg) return;
-            svg.innerHTML = "";
-
-            const data = getNodeData();
-            const edges = generateEdges();
-            const lookup = new Map(data.map(n => [n.id, n]));
-
-            edges.forEach(edge => {
-                const from = lookup.get(edge.from);
-                const to = lookup.get(edge.to);
-
-                if (from && to) {
-                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                    line.setAttribute("x1", from.x);
-                    line.setAttribute("y1", from.y);
-                    line.setAttribute("x2", to.x);
-                    line.setAttribute("y2", to.y);
-                    line.setAttribute("stroke", "white");
-                    line.setAttribute("stroke-width", "4");
-                    line.setAttribute("stroke-dasharray", "10 12");
-                    svg.appendChild(line);
-                }
-            });
-        }
-
-        drawLines();
-        updateMap();
-    </script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Uses Global Event Delegation so it never misses a click inside Bootstrap modals
-            document.body.addEventListener("click", function(e) {
-                if (e.target && e.target.classList.contains("ajax-equip-btn")) {
-                    e.preventDefault();
-
-                    const button = e.target;
-                    const bagId = button.getAttribute("data-bag-id");
-                    const playerId = button.getAttribute("data-player-id");
-
-                    // Validation check to ensure data attributes exist
-                    if (!bagId || !playerId) {
-                        alert("Missing equip context data variables!");
-                        return;
-                    }
-
-                    // Visual feedback: Freeze button so the player doesn't spam click during database lag
-                    button.disabled = true;
-                    button.innerText = "Equipping...";
-
-                    // Targets your exact process directory location perfectly
-                    fetch("pages/processes/equip_item.php", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/x-www-form-urlencoded",
-                            },
-                            body: `player_id=${encodeURIComponent(playerId)}&bag_id=${encodeURIComponent(bagId)}`
-                        })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`HTTP status code error: ${response.status}`);
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            if (data.success) {
-                                // Clean full page reload so character stats and sidebar images update instantly
-                                window.location.reload();
-                            } else {
-                                alert("Equip Failed: " + (data.error || "Unknown validation error."));
-                                button.disabled = false;
-                                button.innerText = "Equip";
-                            }
-                        })
-                        .catch(error => {
-                            console.error("Critical Processing Error:", error);
-                            alert(`Network Connectivity Error.\nDetails: ${error.message}`);
-                            button.disabled = false;
-                            button.innerText = "Equip";
-                        });
-                }
-            });
-        });
-    </script>
-    <script>
-        $(document).ready(function() {
-            // Listen for unequip clicks on any of our 5 slot buttons
-            $(document).on('click', '.ajax-unequip-btn', function() {
-                const button = $(this);
-                const slotName = button.data('slot-name');
-                const playerId = button.data('player-id');
-
-                // Optional confirmation prompt
-                if (confirm(`Are you sure you want to unequip your ${slotName}?`)) {
-                    $.ajax({
-                        url: 'pages/processes/unequip_item.php', // Ensure this path correctly points to your process file
-                        type: 'POST',
-                        data: {
-                            player_id: playerId,
-                            slot_name: slotName
-                        },
-                        dataType: 'json',
-                        success: function(response) {
-                            if (response.success) {
-                                // Refresh the dashboard display so the panel metrics drop back down instantly
-                                window.location.reload();
-                            } else {
-                                alert('Transaction Failed: ' + response.message);
-                            }
-                        },
-                        error: function(xhr, status, error) {
-                            console.error('AJAX Failure:', error);
-                            alert('An error occurred while unequipping the item.');
-                        }
-                    });
-                }
-            });
-        });
-    </script>
-
-    <script>
-        $(document).ready(function() {
-            $(document).on('click', '.ajax-use-consumable-btn', function() {
-                const button = $(this);
-                const bagId = button.data('bag-id');
-                const playerId = button.data('player-id');
-                const maxHp = button.data('max-hp'); // ✅ Grab the client-calculated max HP
-
-                button.prop('disabled', true).text('Processing...');
-
-                // ✅ Single combined AJAX call sending all parameters together
-                $.ajax({
-                    url: 'pages/processes/use_consumable.php',
-                    type: 'POST',
-                    data: {
-                        player_id: playerId,
-                        bag_id: bagId,
-                        client_max_hp: maxHp // ✅ Sent alongside the player and item context
-                    },
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            // Instantly reloads the dashboard page frame to display updated stats
-                            window.location.reload();
-                        } else {
-                            alert('Action Failed: ' + response.message);
-                            button.prop('disabled', false).text('Use Consumable');
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('AJAX Error:', error);
-                        alert('An error occurred on the server.');
-                        button.prop('disabled', false).text('Use Consumable');
-                    }
-                });
-            });
-        });
-
-        function useItem(itemName, healAmount) {
-            if (healAmount > 0) {
-                window.ActiveBattle.player.hp = Math.min(
-                    window.ActiveBattle.player.maxHp,
-                    window.ActiveBattle.player.hp + healAmount
-                );
-                console.log(`Used ${itemName} to heal for ${healAmount}`);
-                // Add code here to update your visual health bar
-            }
-            // Logic to decrement quantity via AJAX could go here
-        }
-    </script>
     <script type="text/javascript">
         document.querySelectorAll('a, img').forEach(el => {
             el.addEventListener('dragstart', e => {
@@ -912,54 +560,52 @@ mysqli_stmt_close($stmt2); // 🛡️ Connection released
             });
         });
 
-
         function updateTurnOrderSidebar() {
             const turnOrderContainer = document.getElementById('turn-order-list');
-            if (!turnOrderContainer) return;
+            if (!turnOrderContainer || !window.combatState || !window.combatState.turnOrder) return;
 
             // Clear out the static PHP rows
             turnOrderContainer.innerHTML = '';
 
-            combatState.turnOrder.forEach(combatant => {
+            window.combatState.turnOrder.forEach(combatant => {
                 // If an enemy is dead, don't show them in the turn order layout
                 if (combatant.type === 'enemy') {
-                    const enemyMatch = combatState.enemies.find(e => e.id === combatant.id);
+                    const enemyMatch = window.combatState.enemies.find(e => e.id === combatant.id);
                     if (enemyMatch && !enemyMatch.alive) return;
                 }
 
-                // Pull the dynamic current speed, falling back to base speed
-                const displaySpeed = combatant.curr_spd ?? combatant.spd ?? 0;
-
+                // Pull the dynamic speed parameter correctly
+                const displaySpeed = combatant.curr_spd ?? combatant.spd ?? combatant.dex ?? 0;
                 let spriteFolder = combatant.type === 'player' ? 'classes/' : 'enemies/lv1/';
                 const glowStyle = combatant.type === 'player' ? 'box-shadow: 0 0 8px #fff;' : '';
 
                 const rowHtml = `
-            <div class="row g-0 mb-2 text-center align-items-center" 
-                 style="background-color: #FAC79B; border-radius: 8px; border: 2px solid #B46940; height: 100px; padding: 0 10px; ${glowStyle}">
-                <div class="col-9 d-flex align-items-center text-start overflow-hidden" style="height: 100%">
-                    <div style="width: 300px; height: 160px; overflow: hidden; position: relative;">
-                        <img src="../../asset/sprites/${spriteFolder}${combatant.sprite}"
-                             class="pixelated"
-                             style="height: 200px; width: 160px; object-fit: cover; position: absolute; left: -30px; display: block;
-                                    -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%);
-                                    mask-image: linear-gradient(to right, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%);">
+                    <div class="row g-0 mb-2 text-center align-items-center" 
+                         style="background-color: #FAC79B; border-radius: 8px; border: 2px solid #B46940; height: 100px; padding: 0 10px; ${glowStyle}">
+                        <div class="col-9 d-flex align-items-center text-start overflow-hidden" style="height: 100%">
+                            <div style="width: 300px; height: 160px; overflow: hidden; position: relative;">
+                                <img src="../../asset/sprites/${spriteFolder}${combatant.sprite}"
+                                     class="pixelated"
+                                     style="height: 200px; width: 160px; object-fit: cover; position: absolute; left: -30px; display: block;
+                                            -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%);
+                                            mask-image: linear-gradient(to right, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%);">
+                            </div>
+                        </div>
+                        <div class="col-3 text-end">
+                            <span class="badge text-dark bg-white font-monospace border border-dark">
+                                ${displaySpeed}
+                            </span>
+                        </div>
                     </div>
-                </div>
-                <div class="col-3 text-end">
-                    <span class="badge text-dark bg-white font-monospace border border-dark">
-                        ${displaySpeed}
-                    </span>
-                </div>
-            </div>
-        `;
+                `;
                 turnOrderContainer.insertAdjacentHTML('beforeend', rowHtml);
             });
         }
 
-        // Call this once right away when the page loads!
-        updateTurnOrderSidebar();
+        // Run updates safely on load once window.combatState is initialized by content_combat.php
+        $(document).ready(function() {
+            setTimeout(updateTurnOrderSidebar, 100);
+        });
     </script>
-
 </body>
-
 </html>

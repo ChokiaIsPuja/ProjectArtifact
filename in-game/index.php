@@ -1,4 +1,5 @@
 <?php
+
 include __DIR__ . '/../conn.php';
 
 // Player ID must come from URL parameter (user can have multiple characters)
@@ -195,6 +196,7 @@ $hp_percentage = ($max_hp > 0) ? ($current_hp / $max_hp) * 100 : 0;
 </head>
 
 <body class="bg-dark" style="font-family: 'Jaro', sans-serif; font-weight: 400; background-color: #D39670;">
+    
     <div id="preloader">
         <img src="../asset/img/loading.png" alt="Loading..." class="preloader-image">
     </div>
@@ -205,6 +207,7 @@ $hp_percentage = ($max_hp > 0) ? ($current_hp / $max_hp) * 100 : 0;
         <h1 class="h5 text-center" style="font-size: 30px; margin-top:15px; margin-bottom: 30px;">Equipments</h1>
 
         <div class="container-fluid mt-2 px-2" style="background-color: #D39670;">
+            
 
             <div class="d-flex justify-content-between mb-3" style="gap: 14px;">
                 <div style="cursor: pointer; flex: 1;" data-bs-toggle="modal" data-bs-target="#modalHelmet">
@@ -333,7 +336,9 @@ $hp_percentage = ($max_hp > 0) ? ($current_hp / $max_hp) * 100 : 0;
     <div class="container-lg workspace-content px-3 d-flex flex-column" style="height: 100vh; overflow: hidden; max-width: 100rem;">
         <div class="row flex-grow-1 mb-3" style="min-height: 0;">
             <div class="col-12 h-100">
+                
                 <div class="p-3 rounded-3 shadow-sm h-100" style="overflow-y: auto; overflow-x: hidden; background-color:#D39670;">
+                    
                     <?php
                     include __DIR__ . '/pages/content.php';
                     if (isset($content)) {
@@ -733,6 +738,7 @@ if ($id > 0) {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script type="text/javascript">
+    // --- PRELOADER HUD CONTROL GATES ---
     $(function() {
         if ($('#beginButton').length) {
             $('#beginButton').prop('disabled', true);
@@ -770,74 +776,444 @@ if ($id > 0) {
 </script>
 
 <script>
-    const map = document.getElementById('map');
-    const viewport = document.querySelector('.viewport');
+    // ==========================================================================
+    // 🌐 GLOBAL SHARED COORDINATE SPACE & SINGLE RUNTIME INITIALIZATION GUARD
+    // ==========================================================================
+    if (typeof window.mapIsEngineInitialized === 'undefined') {
+        window.mapIsEngineInitialized = false;
+    }
 
-    let scale = 1;
-    let translateX = -700;
-    let translateY = -640;
+    window.mapScale = 1;
+    window.mapTranslateX = -700;
+    window.mapTranslateY = -640;
     let isDragging = false;
-    let startX;
-    let startY;
+    let dragStartX;
+    let dragStartY;
 
-    function updateMap() {
-        if (map) {
-            map.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    document.addEventListener("DOMContentLoaded", function() {
+        // Stop execution instantly if the browser frame already processed rendering pass
+        if (window.mapIsEngineInitialized) {
+            console.log("Map Engine: Dual execution blocked via defensive initialization runtime guard.");
+            return;
         }
-    }
+        window.mapIsEngineInitialized = true;
 
-    if (viewport && map) {
-        viewport.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            startX = e.clientX - translateX;
-            startY = e.clientY - translateY;
-            map.style.cursor = 'grabbing';
+        console.log("Map Engine: Initializing Nearest-Neighbor Web Graph...");
+
+        const mapContainer = document.getElementById('map');
+        const svgContainer = document.getElementById('links');
+        const viewport = document.querySelector('.viewport');
+        if (!mapContainer || !svgContainer) return;
+
+        // Clear out containers explicitly before processing generation pipelines
+        mapContainer.innerHTML = '<svg id="links"></svg>';
+        const freshSvgContainer = document.getElementById('links');
+
+        // ==========================================================================
+        // 💾 PARSE BACKEND STATES AND INITIALIZE SEEDED GENERATOR
+        // ==========================================================================
+        const playerId = <?= json_encode((int)$id) ?>;
+        const currentPlayerNodeId = <?= json_encode($currentNode) ?>;
+        const characterClass = <?= json_encode($playerJob) ?>;
+        const mapSeed = <?= json_encode($runSeed) ?>;
+
+        console.log(`State Loaded -> Seed: ${mapSeed}, ActiveNode: ${currentPlayerNodeId}, Class: ${characterClass}`);
+
+        function seededRandom(seed) {
+            let m = 0x80000000;
+            let a = 1103515245;
+            let c = 12345;
+            let s = seed;
+            return function() {
+                s = (a * s + c) % m;
+                return s / (m - 1);
+            };
+        }
+        const myRandom = seededRandom(mapSeed);
+
+        // ==========================================================================
+        // 🗺️ EVENLY DISTRIBUTED LAYER GENERATION
+        // ==========================================================================
+        const totalColumns = 14;
+        const canvasWidth = 5000;
+        const canvasHeight = 2500;
+
+        let mapDataStructure = [];
+        let globalEdges = [];
+        let nodeSequenceCounter = 1;
+        let combatStreak = 0;
+
+        // Step 1: Generate nodes dynamically spaced per column
+        for (let col = 0; col <= totalColumns; col++) {
+            mapDataStructure[col] = [];
+            const columnX = 400 + (col * ((canvasWidth - 800) / totalColumns));
+
+            let nodeCount = 0;
+
+            if (col === 0 || col === totalColumns) {
+                nodeCount = 1; // Start and Boss
+            } else if (col === 1 || col === totalColumns - 1) {
+                nodeCount = Math.floor(myRandom() * 2) + 3; // 3 to 4 nodes for a smooth taper
+            } else {
+                nodeCount = Math.floor(myRandom() * 3) + 4; // 4 to 6 nodes for the main body
+            }
+
+            const segmentHeight = (canvasHeight - 600) / nodeCount;
+
+            for (let i = 0; i < nodeCount; i++) {
+                let chosenType = 'combat';
+                let roll = myRandom();
+
+                if (combatStreak < 2) {
+                    chosenType = (roll < 0.75) ? 'combat' : 'event';
+                } else {
+                    if (roll < 0.55) chosenType = 'combat';
+                    else if (roll < 0.80) chosenType = 'event';
+                    else chosenType = 'shop';
+                }
+
+                if (chosenType === 'combat') combatStreak++;
+                if (chosenType === 'shop') combatStreak = 0;
+
+                // Type Overrides for Start/Boss
+                if (col === 0) chosenType = 'start';
+                if (col === totalColumns) chosenType = 'boss';
+
+                let finalY = 300 + (i * segmentHeight) + (segmentHeight / 2) + (myRandom() * 40 - 20);
+                if (col === 0 || col === totalColumns) finalY = canvasHeight / 2;
+
+                let finalX = columnX + (col === 0 || col === totalColumns ? 0 : (myRandom() * 40 - 20));
+
+                let label = chosenType.charAt(0).toUpperCase() + chosenType.slice(1);
+                if (col === totalColumns) label = "BOSS";
+
+                mapDataStructure[col].push({
+                    id: `node${nodeSequenceCounter++}`,
+                    col: col,
+                    nodeIdx: i,
+                    x: Math.floor(finalX),
+                    y: Math.floor(finalY),
+                    type: chosenType,
+                    label: label
+                });
+            }
+        }
+
+        // ==========================================================================
+        // 🔗 NEAREST-NEIGHBOR EDGE CONNECTOR
+        // ==========================================================================
+        for (let col = 0; col < totalColumns; col++) {
+            let currentLayer = mapDataStructure[col];
+            let nextLayer = mapDataStructure[col + 1];
+            let localEdges = [];
+
+            currentLayer.forEach(u => {
+                let closestV = nextLayer[0];
+                let minDistance = Infinity;
+
+                nextLayer.forEach(v => {
+                    let dist = Math.abs(u.y - v.y);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        closestV = v;
+                    }
+                });
+                localEdges.push({
+                    from: u.id,
+                    to: closestV.id,
+                    fromIdx: u.nodeIdx,
+                    toIdx: closestV.nodeIdx
+                });
+            });
+
+            nextLayer.forEach(v => {
+                let closestU = currentLayer[0];
+                let minDistance = Infinity;
+
+                currentLayer.forEach(u => {
+                    let dist = Math.abs(u.y - v.y);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        closestU = u;
+                    }
+                });
+
+                if (!localEdges.some(e => e.from === closestU.id && e.to === v.id)) {
+                    localEdges.push({
+                        from: closestU.id,
+                        to: v.id,
+                        fromIdx: closestU.nodeIdx,
+                        toIdx: v.nodeIdx
+                    });
+                }
+            });
+
+            currentLayer.forEach(u => {
+                let connectedIndices = localEdges.filter(e => e.from === u.id).map(e => e.toIdx);
+                let minTargetIdx = Math.min(...connectedIndices);
+                let maxTargetIdx = Math.max(...connectedIndices);
+
+                let candidateTargets = [];
+                if (minTargetIdx > 0) candidateTargets.push(minTargetIdx - 1);
+                if (maxTargetIdx < nextLayer.length - 1) candidateTargets.push(maxTargetIdx + 1);
+
+                candidateTargets.forEach(targetIdx => {
+                    if (myRandom() < 0.35) {
+                        let v = nextLayer[targetIdx];
+
+                        let crosses = localEdges.some(existingEdge => {
+                            return (u.nodeIdx < existingEdge.fromIdx && targetIdx > existingEdge.toIdx) ||
+                                (u.nodeIdx > existingEdge.fromIdx && targetIdx < existingEdge.toIdx);
+                        });
+
+                        if (!crosses) {
+                            localEdges.push({
+                                from: u.id,
+                                to: v.id,
+                                fromIdx: u.nodeIdx,
+                                toIdx: v.nodeIdx
+                            });
+                        }
+                    }
+                });
+            });
+
+            localEdges.forEach(e => globalEdges.push(e));
+        }
+
+        // ==========================================================================
+        // 🎨 RENDER MAP GRAPHICS (RUNS EXACTLY ONCE)
+        // ==========================================================================
+
+        // 1. Render HTML Elements
+        for (let col = 0; col <= totalColumns; col++) {
+            mapDataStructure[col].forEach(node => {
+                const nodeAnchor = document.createElement('a');
+                nodeAnchor.id = node.id;
+                nodeAnchor.className = `rpg-node rpg-node-${node.type}`;
+                nodeAnchor.style.position = 'absolute';
+                nodeAnchor.style.left = `${node.x}px`;
+                nodeAnchor.style.top = `${node.y}px`;
+
+                const labelSpan = document.createElement('span');
+                labelSpan.className = 'node-title-label';
+                labelSpan.textContent = node.label;
+                labelSpan.style.cssText = "position: absolute; bottom: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; color: #ffffff; text-shadow: 2px 2px 0px #000; font-weight: bold; font-size: 14px; pointer-events: none; z-index: 100;";
+
+                nodeAnchor.appendChild(labelSpan);
+                mapContainer.appendChild(nodeAnchor);
+            });
+        }
+
+        // 2. Parse Routing Constraints
+        let accessibleTargets = [];
+        if (currentPlayerNodeId) {
+            globalEdges.forEach(edge => {
+                if (edge.from === currentPlayerNodeId) accessibleTargets.push(edge.to);
+            });
+        } else {
+            accessibleTargets = [mapDataStructure[0][0].id];
+        }
+
+        const nodeRoutes = {
+            "rpg-node-combat": `in-combat/index.php?p=combat_level1&id=${playerId}`,
+            "rpg-node-shop": `index.php?p=shop1&id=${playerId}`,
+            "rpg-node-event": `index.php?p=event1&id=${playerId}`,
+            "rpg-node-elite": `in-combat/index.php?p=elite1&id=${playerId}`,
+            "rpg-node-boss": `in-combat/index.php?p=boss1&id=${playerId}`
+        };
+
+        const domNodes = document.querySelectorAll('.rpg-node');
+        domNodes.forEach(node => {
+            node.setAttribute("draggable", "false");
+
+            if (node.id === currentPlayerNodeId) {
+                node.classList.add("rpg-node-current");
+                return;
+            }
+
+            if (accessibleTargets.includes(node.id)) {
+                node.classList.add("rpg-node-next");
+                node.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    let destinationUrl = "#";
+                    for (const [nodeClass, url] of Object.entries(nodeRoutes)) {
+                        if (node.classList.contains(nodeClass)) {
+                            destinationUrl = url;
+                            break;
+                        }
+                    }
+
+                    if (node.id === mapDataStructure[0][0].id && !currentPlayerNodeId) {
+                        const formData = new FormData();
+                        formData.append("player_id", playerId);
+                        fetch("pages/processes/start_run.php", {
+                                method: "POST",
+                                body: formData
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) window.location.reload();
+                            });
+                        return;
+                    }
+
+                    if (destinationUrl !== "#") {
+                        const nodeUpdateData = new FormData();
+                        nodeUpdateData.append("player_id", playerId);
+                        nodeUpdateData.append("node_id", node.id);
+                        fetch("pages/processes/update_node.php", {
+                                method: "POST",
+                                body: nodeUpdateData
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) window.location.href = destinationUrl;
+                            });
+                    }
+                });
+                return;
+            }
+
+            if (node.id !== mapDataStructure[0][0].id || currentPlayerNodeId !== null) {
+                node.classList.add("rpg-node-locked");
+            }
         });
 
-        document.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            translateX = e.clientX - startX;
-            translateY = e.clientY - startY;
-            updateMap();
-        });
+        // 3. Player Tracker Visuals
+        if (currentPlayerNodeId) {
+            const activeNodeElement = document.getElementById(currentPlayerNodeId);
+            if (activeNodeElement) {
+                activeNodeElement.classList.add("player-pointer");
+                activeNodeElement.setAttribute("data-class", characterClass.toLowerCase());
+            }
+        }
 
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            map.style.cursor = 'grab';
-        });
-    }
+        // 4. SVG Vector Lines
+        if (freshSvgContainer) {
+            freshSvgContainer.innerHTML = "";
+            freshSvgContainer.setAttribute("width", canvasWidth);
+            freshSvgContainer.setAttribute("height", canvasHeight);
 
-    const zoomInBtn = document.getElementById('zoomIn');
-    if (zoomInBtn) {
-        zoomInBtn.addEventListener('click', () => {
-            scale += 0.1;
-            updateMap();
-        });
-    }
+            globalEdges.forEach(edge => {
+                const fromNodeEl = document.getElementById(edge.from);
+                const toNodeEl = document.getElementById(edge.to);
 
-    const zoomOutBtn = document.getElementById('zoomOut');
-    if (zoomOutBtn) {
-        zoomOutBtn.addEventListener('click', () => {
-            scale -= 0.1;
-            if (scale < 0.2) scale = 0.2;
-            updateMap();
-        });
-    }
+                if (fromNodeEl && toNodeEl) {
+                    const startX = parseInt(fromNodeEl.style.left) + (fromNodeEl.offsetWidth / 2 || 60);
+                    const startY = parseInt(fromNodeEl.style.top) + (fromNodeEl.offsetHeight / 2 || 60);
+                    const endX = parseInt(toNodeEl.style.left) + (toNodeEl.offsetWidth / 2 || 60);
+                    const endY = parseInt(toNodeEl.style.top) + (toNodeEl.offsetHeight / 2 || 60);
 
-    const centerMapBtn = document.getElementById('centerMap');
-    if (centerMapBtn) {
-        centerMapBtn.addEventListener('click', () => {
-            translateX = -700;
-            translateY = -640;
-            scale = 1;
-            updateMap();
-        });
-    }
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", startX);
+                    line.setAttribute("y1", startY);
+                    line.setAttribute("x2", endX);
+                    line.setAttribute("y2", endY);
+                    line.setAttribute("stroke", "white");
+                    line.setAttribute("stroke-width", "4");
+                    line.setAttribute("stroke-dasharray", "10 12");
+                    line.setAttribute("data-from", edge.from);
+                    line.setAttribute("data-to", edge.to);
+                    freshSvgContainer.appendChild(line);
+                }
+            });
+        }
+
+        // ==========================================================================
+        // 🎥 SYNCED CAMERA TRANSFORM ENGINE
+        // ==========================================================================
+        window.autoCenterCameraOnActiveNode = function() {
+            let targetNodeElement = null;
+
+            if (currentPlayerNodeId) {
+                targetNodeElement = document.getElementById(currentPlayerNodeId);
+            } else if (mapDataStructure[0] && mapDataStructure[0][0]) {
+                targetNodeElement = document.getElementById(mapDataStructure[0][0].id);
+            }
+
+            if (!viewport || !mapContainer || !targetNodeElement) return;
+
+            const nodeX = parseInt(targetNodeElement.style.left) || 0;
+            const nodeY = parseInt(targetNodeElement.style.top) || 0;
+
+            const viewportWidth = viewport.clientWidth;
+            const viewportHeight = viewport.clientHeight;
+
+            const nodeWidth = targetNodeElement.offsetWidth || 60;
+            const nodeHeight = targetNodeElement.offsetHeight || 60;
+
+            window.mapTranslateX = (viewportWidth / 2) - (nodeX + (nodeWidth / 2)) * window.mapScale;
+            window.mapTranslateY = (viewportHeight / 2) - (nodeY + (nodeHeight / 2)) * window.mapScale;
+
+            mapContainer.style.transition = "transform 0.5s ease-out";
+            mapContainer.style.transform = `translate(${window.mapTranslateX}px, ${window.mapTranslateY}px) scale(${window.mapScale})`;
+
+            setTimeout(() => {
+                if (mapContainer) mapContainer.style.transition = "none";
+            }, 500);
+        };
+
+        // Fire auto-centering right after dynamic injection pass wraps up
+        setTimeout(window.autoCenterCameraOnActiveNode, 200);
+
+        // ==========================================================================
+        // 🫳 UNIFIED CANVAS INTERACTIVE DRAG MATRIX
+        // ==========================================================================
+        if (viewport && mapContainer) {
+            viewport.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                mapContainer.style.transition = "none";
+                
+                dragStartX = e.clientX - window.mapTranslateX;
+                dragStartY = e.clientY - window.mapTranslateY;
+                mapContainer.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                window.mapTranslateX = e.clientX - dragStartX;
+                window.mapTranslateY = e.clientY - dragStartY;
+                mapContainer.style.transform = `translate(${window.mapTranslateX}px, ${window.mapTranslateY}px) scale(${window.mapScale})`;
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                mapContainer.style.cursor = 'grab';
+            });
+        }
+
+        const zoomInBtn = document.getElementById('zoomIn');
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', () => {
+                window.mapScale += 0.1;
+                mapContainer.style.transform = `translate(${window.mapTranslateX}px, ${window.mapTranslateY}px) scale(${window.mapScale})`;
+            });
+        }
+
+        const zoomOutBtn = document.getElementById('zoomOut');
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', () => {
+                window.mapScale -= 0.1;
+                if (window.mapScale < 0.2) window.mapScale = 0.2;
+                mapContainer.style.transform = `translate(${window.mapTranslateX}px, ${window.mapTranslateY}px) scale(${window.mapScale})`;
+            });
+        }
+
+        const centerMapBtn = document.getElementById('centerMap');
+        if (centerMapBtn) {
+            centerMapBtn.addEventListener('click', () => {
+                if (typeof window.autoCenterCameraOnActiveNode === 'function') {
+                    window.autoCenterCameraOnActiveNode();
+                }
+            });
+        }
+    });
 </script>
 
 <script>
+    // --- GLOBAL AJAX ITEM EQUIPMENT SYSTEMS ---
     document.addEventListener("DOMContentLoaded", function() {
-        // Global Event Delegation for equipment interactions
         document.body.addEventListener("click", function(e) {
             if (e.target && e.target.classList.contains("ajax-equip-btn")) {
                 e.preventDefault();
@@ -862,9 +1238,7 @@ if ($id > 0) {
                         body: `player_id=${encodeURIComponent(playerId)}&bag_id=${encodeURIComponent(bagId)}`
                     })
                     .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP status code error: ${response.status}`);
-                        }
+                        if (!response.ok) throw new Error(`HTTP status code error: ${response.status}`);
                         return response.json();
                     })
                     .then(data => {
@@ -888,8 +1262,8 @@ if ($id > 0) {
 </script>
 
 <script>
+    // --- UNEQUIP & SLOT RESTORATION TRANSACTIONS ---
     $(document).ready(function() {
-        // Global item unequip listener matrix
         $(document).on('click', '.ajax-unequip-btn', function() {
             const button = $(this);
             const slotName = button.data('slot-name');
@@ -922,8 +1296,8 @@ if ($id > 0) {
 </script>
 
 <script>
+    // --- CONSUMABLE INVENTORY DISPATCH MATRIX ---
     $(document).ready(function() {
-        // Global consumable deployment pipeline
         $(document).on('click', '.ajax-use-consumable-btn', function() {
             const button = $(this);
             const bagId = button.data('bag-id');
