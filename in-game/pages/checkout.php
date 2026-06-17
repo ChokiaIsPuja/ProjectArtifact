@@ -1,7 +1,6 @@
 <?php
 // /Ro-Golike/in-game/pages/checkout.php
 
-// Keep errors displaying just in case, but our JSON will handle DB errors cleanly now
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -11,7 +10,6 @@ if (session_status() === PHP_SESSION_NONE) {
 
 header('Content-Type: application/json');
 
-// Your working connection path!
 require_once '../../conn.php';
 global $conn;
 
@@ -32,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         foreach ($input['items'] as $purchasedItem) {
             $p_id = intval($purchasedItem['item_id']);
-            $purchased_item_ids[] = $p_id; // Store ID for DB queries
+            $purchased_item_ids[] = $p_id;
 
             if (!in_array($p_id, $_SESSION['shop_inventory'][$node_id]['purchased'])) {
                 $_SESSION['shop_inventory'][$node_id]['purchased'][] = $p_id;
@@ -43,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // [DATABASE OPERATIONS]
         // =========================================================================
 
-        // 1. Read the player_id from the incoming JavaScript JSON payload instead of $_SESSION
+        // 1. Read the player_id from the incoming JSON payload
         if (!isset($input['player_id']) || empty($input['player_id'])) {
             echo json_encode(['success' => false, 'message' => 'Error: Player ID was not passed from the URL.']);
             exit;
@@ -76,12 +74,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         mysqli_stmt_execute($stmt1);
         mysqli_stmt_close($stmt1);
 
-        // 4. Add items to inventory
-        $inv_query = "INSERT INTO bag (player_id, item_id) VALUES (?, ?)";
+        // =========================================================================
+        // 4. ADD ITEMS TO INVENTORY WITH QUANTITY GATES
+        // =========================================================================
+        
+        // Option A: If your bag table allows duplicate rows, explicitly set qty = 1
+        $inv_query = "INSERT INTO bag (player_id, item_id, qty) VALUES (?, ?, 1)";
+        
+        // Option B ALTERNATE (Highly Recommended if player_id and item_id are a UNIQUE composite key):
+        // $inv_query = "INSERT INTO bag (player_id, item_id, qty) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE qty = qty + 1";
+
         $stmt2 = mysqli_prepare($conn, $inv_query);
 
         if (!$stmt2) {
-            echo json_encode(['success' => false, 'message' => 'DB Error (Inventory): ' . mysqli_error($conn)]);
+            echo json_encode(['success' => false, 'message' => 'DB Error (Inventory Preparation Failed): ' . mysqli_error($conn)]);
             exit;
         }
 
@@ -91,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         mysqli_stmt_close($stmt2);
 
-        // 5. Fetch the freshly updated gold amount straight from the database to ensure 100% accuracy
+        // 5. Fetch the freshly updated gold amount straight from the database
         $sync_query = "SELECT gold FROM player WHERE player_id = ?";
         $stmt_sync = mysqli_prepare($conn, $sync_query);
         mysqli_stmt_bind_param($stmt_sync, "i", $player_id);
@@ -101,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new_gold_balance = $player_data['gold'];
         mysqli_stmt_close($stmt_sync);
 
-        // 6. Send the new gold amount back to JavaScript!
+        // 6. Send the data back to JavaScript
         echo json_encode([
             'success' => true,
             'new_gold' => $new_gold_balance

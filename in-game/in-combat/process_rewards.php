@@ -13,12 +13,13 @@ if (!$data || !isset($data['player_id'])) {
 $player_id = intval($data['player_id']);
 $exp_gained = intval($data['exp_gained']);
 $items_dropped = $data['items_dropped'] ?? [];
+$current_hp = isset($data['current_hp']) ? intval($data['current_hp']) : null;
 
 mysqli_begin_transaction($conn);
 
 try {
-    // 1. Get current Level, EXP, and Stats (Changed p.player_level to p.level)
-    $query = "SELECT p.level, p.exp, ps.curr_max_hp, ps.curr_atk, ps.curr_def, ps.curr_spd 
+    // 1. Get current Level, EXP, Attribute Points, and Max HP
+    $query = "SELECT p.level, p.exp, p.attribute_points, ps.curr_max_hp
               FROM player p 
               JOIN player_stats ps ON p.player_id = ps.player_id 
               WHERE p.player_id = ? FOR UPDATE";
@@ -34,12 +35,12 @@ try {
         throw new Exception("Character database entry not found.");
     }
 
-    // Changed to match your exact database column ['level']
     $current_level = intval($player['level']); 
     $current_exp = intval($player['exp']) + $exp_gained;
+    $current_attr_points = intval($player['attribute_points'] ?? 0);
+    
     $leveled_up = false;
-    $chosen_stat = null;
-    $stat_increase = 0;
+    $points_gained = 0;
 
     // 2. Process Level Up triggers (100 EXP requirement flat)
     if ($current_exp >= 100) {
@@ -47,40 +48,42 @@ try {
         $current_level += 1;
         $current_exp -= 100; 
 
-        $stats = [
-            'curr_max_hp' => intval($player['curr_max_hp']),
-            'curr_atk'    => intval($player['curr_atk']),
-            'curr_def'    => intval($player['curr_def']),
-            'curr_spd'    => intval($player['curr_spd'])
-        ];
-
-        $stat_keys = array_keys($stats);
-        $chosen_stat = $stat_keys[array_rand($stat_keys)];
-        
-        $stat_increase = floor(($stats[$chosen_stat] / 10) + 2);
-        $new_stat_value = $stats[$chosen_stat] + $stat_increase;
-
-        if ($chosen_stat === 'curr_max_hp') {
-            $update_stats_query = "UPDATE player_stats SET curr_max_hp = ?, curr_hp = ? WHERE player_id = ?";
-            $stmt_stat = mysqli_prepare($conn, $update_stats_query);
-            mysqli_stmt_bind_param($stmt_stat, "iii", $new_stat_value, $new_stat_value, $player_id);
+        // --- ATTRIBUTE POINT LOGIC ---
+        // Every 5 levels gain 3 points, otherwise gain 1 point
+        if ($current_level % 5 === 0) {
+            $points_gained = 3;
         } else {
-            $update_stats_query = "UPDATE player_stats SET $chosen_stat = ? WHERE player_id = ?";
-            $stmt_stat = mysqli_prepare($conn, $update_stats_query);
-            mysqli_stmt_bind_param($stmt_stat, "ii", $new_stat_value, $player_id);
+            $points_gained = 1;
         }
-        mysqli_stmt_execute($stmt_stat);
-        mysqli_stmt_close($stmt_stat);
+        $current_attr_points += $points_gained;
+
+        // Fully heal the player back to their max health tier as a level-up bonus
+        $base_max_hp = intval($player['curr_max_hp']);
+        $update_hp_query = "UPDATE player_stats SET curr_hp = ? WHERE player_id = ?";
+        $stmt_hp = mysqli_prepare($conn, $update_hp_query);
+        mysqli_stmt_bind_param($stmt_hp, "ii", $base_max_hp, $player_id);
+        mysqli_stmt_execute($stmt_hp);
+        mysqli_stmt_close($stmt_hp);
+
+    } else {
+        // If the character did NOT level up, save mid-combat damage parameters safely
+        if ($current_hp !== null) {
+            $update_hp_query = "UPDATE player_stats SET curr_hp = ? WHERE player_id = ?";
+            $stmt_hp = mysqli_prepare($conn, $update_hp_query);
+            mysqli_stmt_bind_param($stmt_hp, "ii", $current_hp, $player_id);
+            mysqli_stmt_execute($stmt_hp);
+            mysqli_stmt_close($stmt_hp);
+        }
     }
 
-    // 3. Save Level and EXP (Changed player_level = ? to level = ?)
-    $update_player = "UPDATE player SET level = ?, exp = ? WHERE player_id = ?";
+    // 3. Save Level, EXP, and Attribute Points back into the player table
+    $update_player = "UPDATE player SET level = ?, exp = ?, attribute_points = ? WHERE player_id = ?";
     $stmt_p = mysqli_prepare($conn, $update_player);
-    mysqli_stmt_bind_param($stmt_p, "iii", $current_level, $current_exp, $player_id);
+    mysqli_stmt_bind_param($stmt_p, "iiii", $current_level, $current_exp, $current_attr_points, $player_id);
     mysqli_stmt_execute($stmt_p);
     mysqli_stmt_close($stmt_p);
 
-    // 4. Record Loot Drops to your Bag inventory table
+    // 4. Record Loot Drops to Bag inventory table
     if (!empty($items_dropped)) {
         foreach ($items_dropped as $item) {
             $item_id = intval($item['item_id']);
@@ -101,8 +104,8 @@ try {
         'leveled_up' => $leveled_up,
         'new_level' => $current_level,
         'current_exp' => $current_exp,
-        'stat_upgraded' => $chosen_stat,
-        'stat_gain' => $stat_increase
+        'points_gained' => $points_gained,
+        'total_points' => $current_attr_points
     ]);
 
 } catch (Exception $e) {

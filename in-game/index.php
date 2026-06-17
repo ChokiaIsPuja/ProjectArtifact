@@ -8,19 +8,24 @@ $player_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if ($player_id <= 0) {
     die("Error: No player character selected. Player ID is required.");
 }
-
-// --- STEP 1: LOAD MAIN CHARACTER DATA ---
+// --- STEP 1: LOAD MAIN CHARACTER DATA (EXPLICIT COLUMNS TO PREVENT NULLS) ---
 $query = "SELECT 
             p.*, 
             c.class_name, 
             c.avatar, 
             c.base_hp,
-            ps.*
+            ps.curr_hp,
+            ps.curr_max_hp,
+            ps.curr_str,
+            ps.curr_def,
+            ps.curr_dex,
+            ps.curr_int,
+            ps.curr_fth
           FROM player p
           LEFT JOIN class c ON p.class_id = c.class_id
           LEFT JOIN player_stats ps ON p.player_id = ps.player_id 
           WHERE p.player_id = ?
-          GROUP BY p.player_id, c.class_name, c.avatar, c.base_hp, ps.player_stat_id";
+          LIMIT 1";
 
 $stmt = mysqli_prepare($conn, $query);
 if (!$stmt) {
@@ -33,6 +38,9 @@ $result = mysqli_stmt_get_result($stmt);
 $row = mysqli_fetch_assoc($result);
 mysqli_stmt_close($stmt);
 
+if (!$row) {
+    die("Error: Active player character matrix data not found.");
+}
 
 // --- STEP 2: LOAD SIDEBAR EQUIPPED SPRITES & NAMES ---
 $equipped_items = [
@@ -43,11 +51,14 @@ $equipped_items = [
     'armaments' => null
 ];
 
+// ✅ NEW: Initialize checklist array to track items that are currently worn
+$equipped_bag_ids = [];
+
 if ($player_id > 0) {
     try {
-        // FIXED: Changed it.id_item_attributes to it.item_id to match your new DB schema
         $equip_load_query = "SELECT 
                                 pe.slot_name, 
+                                pe.bag_id, -- ✅ Added selection field to fill structural array references
                                 it.item_name,
                                 it.item_desc,
                                 it.sprite,
@@ -65,7 +76,6 @@ if ($player_id > 0) {
 
         $stmt_load = mysqli_prepare($conn, $equip_load_query);
 
-        // This will instantly tell you if your SQL query has a typo!
         if (!$stmt_load) {
             die("Step 2 Equipment Query Failed: " . mysqli_error($conn));
         }
@@ -75,6 +85,9 @@ if ($player_id > 0) {
         $load_result = mysqli_stmt_get_result($stmt_load);
 
         while ($equip_row = mysqli_fetch_assoc($load_result)) {
+            // ✅ NEW: Push equipped bag row identifiers to tracking cache loop
+            $equipped_bag_ids[] = intval($equip_row['bag_id']);
+
             $slot = strtolower(trim($equip_row['slot_name']));
 
             if ($slot === 'head' || $slot === 'weapon' || $slot === 'body') {
@@ -121,8 +134,6 @@ $total_fth    = $base_fth;
 
 if ($player_id > 0) {
     try {
-        // FIXED: Changed it.id_item_attributes to it.item_id to match your new DB schema
-        // FIXED: Changed INNER JOIN item_attributes to LEFT JOIN so items without stats don't break the query
         $stats_query = "SELECT 
                             SUM(ia.att_str) as gear_str, 
                             SUM(ia.att_def) as gear_def,
@@ -133,6 +144,7 @@ if ($player_id > 0) {
                         FROM player_equipment pe
                         INNER JOIN bag b ON pe.bag_id = b.bag_id
                         INNER JOIN item it ON b.item_id = it.item_id
+                        /* DOUBLE-CHECK: Ensure your schema uses item_id here, or swap back to id_item_attributes if needed */
                         LEFT JOIN item_attributes ia ON it.item_id = ia.item_id
                         WHERE pe.player_id = ?";
 
@@ -148,12 +160,14 @@ if ($player_id > 0) {
         $gear = mysqli_fetch_assoc($stats_result);
         mysqli_stmt_close($stmt_stats);
 
+        // --- FIXED: Keys now match the SQL aliases ('gear_str', 'gear_def', etc.) ---
         $total_str    = $base_str + (int)($gear['gear_str'] ?? 0);
         $total_def    = $base_def + (int)($gear['gear_def'] ?? 0);
         $total_max_hp = $base_max_hp + (int)($gear['gear_hp'] ?? 0);
         $total_dex    = $base_dex + (int)($gear['gear_dex'] ?? 0);
         $total_int    = $base_int + (int)($gear['gear_int'] ?? 0);
         $total_fth    = $base_fth + (int)($gear['gear_fth'] ?? 0);
+
     } catch (Exception $e) {
         error_log("Stats Calculation Failure: " . $e->getMessage());
     }
@@ -161,13 +175,16 @@ if ($player_id > 0) {
 
 // --- STEP 4: CURRENT HEALTH RUNTIME UPDATES ---
 $max_hp = $total_max_hp;
-$current_hp = intval($row['curr_hp'] ?? $max_hp);
+
+// FIXED: Explicit lookup ensuring real 0 HP parameters do not default back to max health values
+$current_hp = (isset($row['curr_hp']) && $row['curr_hp'] !== '') ? intval($row['curr_hp']) : $max_hp;
 
 if (isset($_GET['damage'])) {
     $damage_taken = intval($_GET['damage']);
     $current_hp -= $damage_taken;
 }
 
+// Cap values inside structural boundaries
 if ($current_hp > $max_hp) {
     $current_hp = $max_hp;
 } else if ($current_hp < 0) {
@@ -176,7 +193,6 @@ if ($current_hp > $max_hp) {
 
 $hp_percentage = ($max_hp > 0) ? ($current_hp / $max_hp) * 100 : 0;
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -196,7 +212,7 @@ $hp_percentage = ($max_hp > 0) ? ($current_hp / $max_hp) * 100 : 0;
 </head>
 
 <body class="bg-dark" style="font-family: 'Jaro', sans-serif; font-weight: 400; background-color: #D39670;">
-    
+
     <div id="preloader">
         <img src="../asset/img/loading.png" alt="Loading..." class="preloader-image">
     </div>
@@ -207,7 +223,7 @@ $hp_percentage = ($max_hp > 0) ? ($current_hp / $max_hp) * 100 : 0;
         <h1 class="h5 text-center" style="font-size: 30px; margin-top:15px; margin-bottom: 30px;">Equipments</h1>
 
         <div class="container-fluid mt-2 px-2" style="background-color: #D39670;">
-            
+
 
             <div class="d-flex justify-content-between mb-3" style="gap: 14px;">
                 <div style="cursor: pointer; flex: 1;" data-bs-toggle="modal" data-bs-target="#modalHelmet">
@@ -300,8 +316,7 @@ $hp_percentage = ($max_hp > 0) ? ($current_hp / $max_hp) * 100 : 0;
                                 <?= htmlspecialchars($row['name'] ?? 'Hero') ?>
                             </p>
                             <div class="progress" style="height: 20px; border-radius: 5px; border: 2px solid #B46940">
-                                <?php $hp_percentage = ($max_hp > 0) ? ($current_hp / $max_hp) * 100 : 0; ?>
-                                <div class="progress-bar bg-danger"
+                                <div id="hud-hp-bar" class="progress-bar bg-danger"
                                     role="progressbar"
                                     style="width: <?= $hp_percentage ?>%; transition: width 0.4s ease;"
                                     aria-valuenow="<?= htmlspecialchars($current_hp) ?>"
@@ -309,7 +324,7 @@ $hp_percentage = ($max_hp > 0) ? ($current_hp / $max_hp) * 100 : 0;
                                     aria-valuemax="<?= htmlspecialchars($max_hp) ?>">
                                 </div>
                             </div>
-                            <p class="text-right small text-white fw-bold mt-1 mb-0 outlined-text-small" style="font-size: 18px; text-align: right;">
+                            <p id="hud-hp-text" class="text-right small text-white fw-bold mt-1 mb-0 outlined-text-small" style="font-size: 18px; text-align: right;">
                                 <?= htmlspecialchars($current_hp) ?> / <?= htmlspecialchars($max_hp) ?>
                             </p>
                         </div>
@@ -336,9 +351,9 @@ $hp_percentage = ($max_hp > 0) ? ($current_hp / $max_hp) * 100 : 0;
     <div class="container-lg workspace-content px-3 d-flex flex-column" style="height: 100vh; overflow: hidden; max-width: 100rem;">
         <div class="row flex-grow-1 mb-3" style="min-height: 0;">
             <div class="col-12 h-100">
-                
+
                 <div class="p-3 rounded-3 shadow-sm h-100" style="overflow-y: auto; overflow-x: hidden; background-color:#D39670;">
-                    
+
                     <?php
                     include __DIR__ . '/pages/content.php';
                     if (isset($content)) {
@@ -524,41 +539,6 @@ if ($id > 0) {
                             INNER JOIN item it ON b.item_id = it.item_id
                             WHERE b.player_id = ?";
 
-        // 🛠️ CHANGED: Switched entirely to procedural mysqli functions
-        $stmt_inv = mysqli_prepare($conn, $inventory_query);
-        if ($stmt_inv) {
-            mysqli_stmt_bind_param($stmt_inv, "i", $id);
-            mysqli_stmt_execute($stmt_inv);
-            $result = mysqli_stmt_get_result($stmt_inv);
-
-            while ($item_row = mysqli_fetch_assoc($result)) {
-                $inventory_rows[] = $item_row;
-            }
-        }
-    } catch (Exception $e) {
-        error_log($e->getMessage());
-    }
-}
-?>
-
-<?php
-// 1. THE PROCEDURAL LOADER BLOCK (Matching your new direct player_id relation)
-$inventory_rows = [];
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-
-if ($id > 0) {
-    try {
-        $inventory_query = "SELECT 
-                                b.bag_id, 
-                                it.item_name, 
-                                b.qty, 
-                                it.item_type, 
-                                it.sprite 
-                            FROM bag b
-                            INNER JOIN item it ON b.item_id = it.item_id
-                            WHERE b.player_id = ?";
-
-        // 🛠️ CHANGED: Switched entirely to procedural mysqli functions
         $stmt_inv = mysqli_prepare($conn, $inventory_query);
         if ($stmt_inv) {
             mysqli_stmt_bind_param($stmt_inv, "i", $id);
@@ -582,49 +562,70 @@ if ($id > 0) {
                 <h5 class="modal-title fw-bold">Bag Inventory</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div id="modal-inventory-wrapper" class="modal-body">
                 <?php if (!empty($inventory_rows)): ?>
-                    <?php foreach ($inventory_rows as $index => $item_row): ?>
-
+                    <?php foreach ($inventory_rows as $index => $item_row): 
+                        $raw_type = strtolower(trim($item_row['item_type'] ?? ''));
+                        $current_bag_id = intval($item_row['bag_id'] ?? 0);
+                        // ✅ CHECKLIST: Flag whether item matches active elements in $equipped_bag_ids array
+                        $is_currently_equipped = in_array($current_bag_id, $equipped_bag_ids);
+                    ?>
                         <div class="row mb-2">
                             <div class="col-12">
                                 <div class="p-2 d-flex justify-content-between align-items-center"
-                                    style="background-color: #FFF2E6; border: 2px solid #B46940; cursor: pointer;"
+                                    style="background-color: <?= $is_currently_equipped ? '#E6F2FF' : '#FFF2E6' ?>; border: 2px solid #B46940; cursor: pointer;"
                                     data-bs-toggle="collapse"
-                                    data-bs-target="#item_<?= htmlspecialchars($item_row['bag_id'] ?? 0) ?>_<?= $index ?>"
+                                    data-bs-target="#item_<?= htmlspecialchars($current_bag_id) ?>_<?= $index ?>"
                                     aria-expanded="false">
 
                                     <div class="d-flex align-items-center gap-2">
                                         <img src="../asset/img/items/<?= htmlspecialchars($item_row['sprite'] ?: 'default.png') ?>"
                                             alt="<?= htmlspecialchars($item_row['item_name'] ?? 'Unknown Item') ?>"
                                             style="max-width: 40px; max-height: 40px; object-fit: contain; image-rendering: pixelated;">
-                                        <p class="m-0 fw-bold"><?= htmlspecialchars($item_row['item_name'] ?? 'Unknown Item') ?></p>
+                                        <p class="m-0 fw-bold">
+                                            <?= htmlspecialchars($item_row['item_name'] ?? 'Unknown Item') ?>
+                                            <?php if ($is_currently_equipped): ?>
+                                                <span class="badge bg-primary ms-2 small">Equipped</span>
+                                            <?php endif; ?>
+                                        </p>
                                     </div>
 
-                                    <p class="m-0 text-muted">x<?= htmlspecialchars($item_row['qty'] ?? 1) ?> ▾</p>
+                                    <p class="m-0 text-muted item-qty-label">x<?= htmlspecialchars($item_row['qty'] ?? 1) ?> ▾</p>
                                 </div>
 
-                                <div class="collapse" id="item_<?= htmlspecialchars($item_row['bag_id'] ?? 0) ?>_<?= $index ?>">
+                                <div class="collapse" id="item_<?= htmlspecialchars($current_bag_id) ?>_<?= $index ?>">
                                     <div class="p-2 border-start border-end border-bottom" style="background-color: #FFFDFB; border-color: #B46940 !important;">
-                                        <div class="d-flex gap-2 justify-content-end">
+                                        <div class="d-flex gap-2 justify-content-end align-items-center mt-1">
 
-                                            <?php if (in_array(strtolower($item_row['item_type'] ?? ''), ['helmet', 'armor', 'boots', 'accessory', 'weapon', 'armaments', 'equipment'])): ?>
-                                                <button type="button"
-                                                    class="btn btn-sm btn-dark text-white px-3 ajax-equip-btn"
-                                                    data-bag-id="<?= htmlspecialchars($item_row['bag_id'] ?? 0) ?>"
-                                                    data-player-id="<?= $player_id ?>"> Equip
-                                                </button>
-                                            <?php else: ?>
-                                                <?php if (isset($item_row['item_type']) && strtolower(trim($item_row['item_type'])) === 'consumables'): ?>
-                                                    <button class="btn btn-success btn-sm ajax-use-consumable-btn w-100 mt-2 fw-bold"
-                                                        data-bag-id="<?= $item_row['bag_id'] ?>"
-                                                        data-player-id="<?= $player_id ?>"
-                                                        data-max-hp="<?= $max_hp ?>"> Use Consumable
+                                            <?php if (in_array($raw_type, ['helmet', 'armor', 'boots', 'accessory', 'weapon', 'armaments', 'equipment'])): ?>
+                                                <?php if ($is_currently_equipped): ?>
+                                                    <button type="button" class="btn btn-sm btn-secondary text-white px-3" disabled>
+                                                        Equipped
+                                                    </button>
+                                                <?php else: ?>
+                                                    <button type="button"
+                                                        class="btn btn-sm btn-dark text-white px-3 ajax-equip-btn"
+                                                        data-bag-id="<?= htmlspecialchars($current_bag_id) ?>"
+                                                        data-player-id="<?= $player_id ?>"> Equip
                                                     </button>
                                                 <?php endif; ?>
+
+                                            <?php elseif ($raw_type === 'consumable' || $raw_type === 'consumables'): ?>
+                                                <button type="button" 
+                                                    class="btn btn-success btn-sm ajax-use-consumable-btn fw-bold px-3"
+                                                    data-bag-id="<?= htmlspecialchars($current_bag_id) ?>"
+                                                    data-player-id="<?= $player_id ?>"
+                                                    data-max-hp="<?= $max_hp ?>"> Use Consumable
+                                                </button>
                                             <?php endif; ?>
 
-                                            <button class="btn btn-sm btn-outline-danger px-3">Drop</button>
+                                            <?php if (!$is_currently_equipped): ?>
+                                                <button type="button" 
+                                                    class="btn btn-sm btn-outline-danger px-3 ajax-drop-item-btn"
+                                                    data-bag-id="<?= htmlspecialchars($current_bag_id) ?>"
+                                                    data-player-id="<?= $player_id ?>">Drop
+                                                </button>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
@@ -661,16 +662,16 @@ if ($id > 0) {
                                 </p>
 
                                 <div class="progress mt-2" style="height: 20px; border-radius: 5px; border: 2px solid #B46940; background-color: rgba(0,0,0,0.5);">
-                                    <div class="progress-bar bg-danger"
+                                    <div id="sheet-hp-bar" class="progress-bar bg-danger"
                                         role="progressbar"
-                                        style="width: <?= $hp_percentage ?>%; transition: width 0.4s ease;"
+                                        style="width: <?= ($total_max_hp > 0) ? ($current_hp / $total_max_hp) * 100 : 0 ?>%; transition: width 0.4s ease;"
                                         aria-valuenow="<?= htmlspecialchars($current_hp) ?>"
                                         aria-valuemin="0"
-                                        aria-valuemax="<?= htmlspecialchars($max_hp) ?>">
+                                        aria-valuemax="<?= htmlspecialchars($total_max_hp) ?>">
                                     </div>
                                 </div>
-                                <p class="text-right small text-white fw-bold mt-1 mb-0 outlined-text-small" style="font-size: 18px; text-align: right;">
-                                    <?= htmlspecialchars($current_hp) ?> / <?= htmlspecialchars($max_hp) ?> HP
+                                <p id="sheet-hp-text" class="text-right small text-white fw-bold mt-1 mb-0 outlined-text-small" style="font-size: 18px; text-align: right;">
+                                    <?= htmlspecialchars($current_hp) ?> / <?= htmlspecialchars($total_max_hp) ?> HP
                                 </p>
                             </div>
                         </div>
@@ -679,7 +680,7 @@ if ($id > 0) {
                     <div class="col-md-6 d-flex flex-column justify-content-between">
                         <div class="p-4 h-100 d-flex flex-column justify-content-between" style="background-color: rgba(180, 105, 64, 0.15); border-radius: 12px;">
                             <div>
-                                <h4 class="fw-bold mb-3 border-bottom pb-2 text-dark" style="font-size: 22px; border-color: #B46940 !important;">Core Attributes</h4>
+                                <h4 class="fw-bold mb-3 border-bottom pb-2 text-dark" style="font-size: 22px; border-color: #B46940 !important;">Attribute Points : <?= $row['attribute_points'] ?? '0' ?></h4>
 
                                 <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded" style="box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                                     <span class="fw-bold text-muted text-uppercase">Level</span>
@@ -693,32 +694,32 @@ if ($id > 0) {
 
                                 <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded" style="box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                                     <span class="fw-bold text-muted text-uppercase">Max HP</span>
-                                    <span class="fw-bold text-dark fs-5"><?= $max_hp ?></span>
+                                    <span id="stat-display-max-hp" class="fw-bold text-dark fs-5"><?= $total_max_hp ?></span>
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded" style="box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                                     <span class="fw-bold text-muted text-uppercase">Str</span>
-                                    <span class="fw-bold text-dark fs-5"><?= $total_str ?></span>
+                                    <span id="stat-display-str" class="fw-bold text-dark fs-5"><?= $total_str ?></span>
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded" style="box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                                     <span class="fw-bold text-muted text-uppercase">Def</span>
-                                    <span class="fw-bold text-dark fs-5"><?= $total_def ?></span>
+                                    <span id="stat-display-def" class="fw-bold text-dark fs-5"><?= $total_def ?></span>
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded" style="box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                                     <span class="fw-bold text-muted text-uppercase">Dex</span>
-                                    <span class="fw-bold text-dark fs-5"><?= $total_dex ?></span>
+                                    <span id="stat-display-dex" class="fw-bold text-dark fs-5"><?= $total_dex ?></span>
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded" style="box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                                     <span class="fw-bold text-muted text-uppercase">Int</span>
-                                    <span class="fw-bold text-dark fs-5"><?= $total_int ?></span>
+                                    <span id="stat-display-int" class="fw-bold text-dark fs-5"><?= $total_int ?></span>
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded" style="box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                                     <span class="fw-bold text-muted text-uppercase">Fth</span>
-                                    <span class="fw-bold text-dark fs-5"><?= $total_fth ?></span>
+                                    <span id="stat-display-fth" class="fw-bold text-dark fs-5"><?= $total_fth ?></span>
                                 </div>
                             </div>
 
@@ -776,439 +777,411 @@ if ($id > 0) {
 </script>
 
 <script>
-    // ==========================================================================
-    // 🌐 GLOBAL SHARED COORDINATE SPACE & SINGLE RUNTIME INITIALIZATION GUARD
-    // ==========================================================================
-    if (typeof window.mapIsEngineInitialized === 'undefined') {
-        window.mapIsEngineInitialized = false;
-    }
-
-    window.mapScale = 1;
-    window.mapTranslateX = -700;
-    window.mapTranslateY = -640;
-    let isDragging = false;
-    let dragStartX;
-    let dragStartY;
-
-    document.addEventListener("DOMContentLoaded", function() {
-        // Stop execution instantly if the browser frame already processed rendering pass
-        if (window.mapIsEngineInitialized) {
-            console.log("Map Engine: Dual execution blocked via defensive initialization runtime guard.");
-            return;
+    // ✅ SCOPED IIFE BLOCK: Keeps drag variables safe from global conflicts
+    (function() {
+        if (typeof window.mapIsEngineInitialized === 'undefined') {
+            window.mapIsEngineInitialized = false;
         }
-        window.mapIsEngineInitialized = true;
 
-        console.log("Map Engine: Initializing Nearest-Neighbor Web Graph...");
+        window.mapScale = 1;
+        window.mapTranslateX = -700;
+        window.mapTranslateY = -640;
+        let isDragging = false;
+        let dragStartX;
+        let dragStartY;
 
-        const mapContainer = document.getElementById('map');
-        const svgContainer = document.getElementById('links');
-        const viewport = document.querySelector('.viewport');
-        if (!mapContainer || !svgContainer) return;
-
-        // Clear out containers explicitly before processing generation pipelines
-        mapContainer.innerHTML = '<svg id="links"></svg>';
-        const freshSvgContainer = document.getElementById('links');
-
-        // ==========================================================================
-        // 💾 PARSE BACKEND STATES AND INITIALIZE SEEDED GENERATOR
-        // ==========================================================================
-        const playerId = <?= json_encode((int)$id) ?>;
-        const currentPlayerNodeId = <?= json_encode($currentNode) ?>;
-        const characterClass = <?= json_encode($playerJob) ?>;
-        const mapSeed = <?= json_encode($runSeed) ?>;
-
-        console.log(`State Loaded -> Seed: ${mapSeed}, ActiveNode: ${currentPlayerNodeId}, Class: ${characterClass}`);
-
-        function seededRandom(seed) {
-            let m = 0x80000000;
-            let a = 1103515245;
-            let c = 12345;
-            let s = seed;
-            return function() {
-                s = (a * s + c) % m;
-                return s / (m - 1);
-            };
-        }
-        const myRandom = seededRandom(mapSeed);
-
-        // ==========================================================================
-        // 🗺️ EVENLY DISTRIBUTED LAYER GENERATION
-        // ==========================================================================
-        const totalColumns = 14;
-        const canvasWidth = 5000;
-        const canvasHeight = 2500;
-
-        let mapDataStructure = [];
-        let globalEdges = [];
-        let nodeSequenceCounter = 1;
-        let combatStreak = 0;
-
-        // Step 1: Generate nodes dynamically spaced per column
-        for (let col = 0; col <= totalColumns; col++) {
-            mapDataStructure[col] = [];
-            const columnX = 400 + (col * ((canvasWidth - 800) / totalColumns));
-
-            let nodeCount = 0;
-
-            if (col === 0 || col === totalColumns) {
-                nodeCount = 1; // Start and Boss
-            } else if (col === 1 || col === totalColumns - 1) {
-                nodeCount = Math.floor(myRandom() * 2) + 3; // 3 to 4 nodes for a smooth taper
-            } else {
-                nodeCount = Math.floor(myRandom() * 3) + 4; // 4 to 6 nodes for the main body
+        document.addEventListener("DOMContentLoaded", function() {
+            if (window.mapIsEngineInitialized) {
+                console.log("Map Engine: Dual execution blocked via defensive initialization runtime guard.");
+                return;
             }
+            window.mapIsEngineInitialized = true;
 
-            const segmentHeight = (canvasHeight - 600) / nodeCount;
+            console.log("Map Engine: Initializing Nearest-Neighbor Web Graph...");
 
-            for (let i = 0; i < nodeCount; i++) {
-                let chosenType = 'combat';
-                let roll = myRandom();
+            const mapContainer = document.getElementById('map');
+            const svgContainer = document.getElementById('links');
+            const viewport = document.querySelector('.viewport');
+            if (!mapContainer || !svgContainer) return;
 
-                if (combatStreak < 2) {
-                    chosenType = (roll < 0.75) ? 'combat' : 'event';
+            mapContainer.innerHTML = '<svg id="links"></svg>';
+            const freshSvgContainer = document.getElementById('links');
+
+            const playerId = <?= json_encode((int)$id) ?>;
+            const currentPlayerNodeId = <?= json_encode($currentNode) ?>;
+            const characterClass = <?= json_encode($playerJob) ?>;
+            const mapSeed = <?= json_encode($runSeed) ?>;
+
+            console.log(`State Loaded -> Seed: ${mapSeed}, ActiveNode: ${currentPlayerNodeId}, Class: ${characterClass}`);
+
+            function seededRandom(seed) {
+                let m = 0x80000000;
+                let a = 1103515245;
+                let c = 12345;
+                let s = seed;
+                return function() {
+                    s = (a * s + c) % m;
+                    return s / (m - 1);
+                };
+            }
+            const myRandom = seededRandom(mapSeed);
+
+            const totalColumns = 14;
+            const canvasWidth = 5000;
+            const canvasHeight = 2500;
+
+            let mapDataStructure = [];
+            let globalEdges = [];
+            let nodeSequenceCounter = 1;
+            let combatStreak = 0;
+
+            for (let col = 0; col <= totalColumns; col++) {
+                mapDataStructure[col] = [];
+                const columnX = 400 + (col * ((canvasWidth - 800) / totalColumns));
+
+                let nodeCount = 0;
+
+                if (col === 0 || col === totalColumns) {
+                    nodeCount = 1;
+                } else if (col === 1 || col === totalColumns - 1) {
+                    nodeCount = Math.floor(myRandom() * 2) + 3;
                 } else {
-                    if (roll < 0.55) chosenType = 'combat';
-                    else if (roll < 0.80) chosenType = 'event';
-                    else chosenType = 'shop';
+                    nodeCount = Math.floor(myRandom() * 3) + 4;
                 }
 
-                if (chosenType === 'combat') combatStreak++;
-                if (chosenType === 'shop') combatStreak = 0;
+                const segmentHeight = (canvasHeight - 600) / nodeCount;
 
-                // Type Overrides for Start/Boss
-                if (col === 0) chosenType = 'start';
-                if (col === totalColumns) chosenType = 'boss';
+                for (let i = 0; i < nodeCount; i++) {
+                    let chosenType = 'combat';
+                    let roll = myRandom();
 
-                let finalY = 300 + (i * segmentHeight) + (segmentHeight / 2) + (myRandom() * 40 - 20);
-                if (col === 0 || col === totalColumns) finalY = canvasHeight / 2;
-
-                let finalX = columnX + (col === 0 || col === totalColumns ? 0 : (myRandom() * 40 - 20));
-
-                let label = chosenType.charAt(0).toUpperCase() + chosenType.slice(1);
-                if (col === totalColumns) label = "BOSS";
-
-                mapDataStructure[col].push({
-                    id: `node${nodeSequenceCounter++}`,
-                    col: col,
-                    nodeIdx: i,
-                    x: Math.floor(finalX),
-                    y: Math.floor(finalY),
-                    type: chosenType,
-                    label: label
-                });
-            }
-        }
-
-        // ==========================================================================
-        // 🔗 NEAREST-NEIGHBOR EDGE CONNECTOR
-        // ==========================================================================
-        for (let col = 0; col < totalColumns; col++) {
-            let currentLayer = mapDataStructure[col];
-            let nextLayer = mapDataStructure[col + 1];
-            let localEdges = [];
-
-            currentLayer.forEach(u => {
-                let closestV = nextLayer[0];
-                let minDistance = Infinity;
-
-                nextLayer.forEach(v => {
-                    let dist = Math.abs(u.y - v.y);
-                    if (dist < minDistance) {
-                        minDistance = dist;
-                        closestV = v;
+                    if (combatStreak < 2) {
+                        chosenType = (roll < 0.75) ? 'combat' : 'event';
+                    } else {
+                        if (roll < 0.55) chosenType = 'combat';
+                        else if (roll < 0.80) chosenType = 'event';
+                        else chosenType = 'shop';
                     }
-                });
-                localEdges.push({
-                    from: u.id,
-                    to: closestV.id,
-                    fromIdx: u.nodeIdx,
-                    toIdx: closestV.nodeIdx
-                });
-            });
 
-            nextLayer.forEach(v => {
-                let closestU = currentLayer[0];
-                let minDistance = Infinity;
+                    if (chosenType === 'combat') combatStreak++;
+                    if (chosenType === 'shop') combatStreak = 0;
 
-                currentLayer.forEach(u => {
-                    let dist = Math.abs(u.y - v.y);
-                    if (dist < minDistance) {
-                        minDistance = dist;
-                        closestU = u;
-                    }
-                });
+                    if (col === 0) chosenType = 'start';
+                    if (col === totalColumns) chosenType = 'boss';
 
-                if (!localEdges.some(e => e.from === closestU.id && e.to === v.id)) {
-                    localEdges.push({
-                        from: closestU.id,
-                        to: v.id,
-                        fromIdx: closestU.nodeIdx,
-                        toIdx: v.nodeIdx
+                    let finalY = 300 + (i * segmentHeight) + (segmentHeight / 2) + (myRandom() * 40 - 20);
+                    if (col === 0 || col === totalColumns) finalY = canvasHeight / 2;
+
+                    let finalX = columnX + (col === 0 || col === totalColumns ? 0 : (myRandom() * 40 - 20));
+
+                    let label = chosenType.charAt(0).toUpperCase() + chosenType.slice(1);
+                    if (col === totalColumns) label = "BOSS";
+
+                    mapDataStructure[col].push({
+                        id: `node${nodeSequenceCounter++}`,
+                        col: col,
+                        nodeIdx: i,
+                        x: Math.floor(finalX),
+                        y: Math.floor(finalY),
+                        type: chosenType,
+                        label: label
                     });
                 }
-            });
+            }
 
-            currentLayer.forEach(u => {
-                let connectedIndices = localEdges.filter(e => e.from === u.id).map(e => e.toIdx);
-                let minTargetIdx = Math.min(...connectedIndices);
-                let maxTargetIdx = Math.max(...connectedIndices);
+            for (let col = 0; col < totalColumns; col++) {
+                let currentLayer = mapDataStructure[col];
+                let nextLayer = mapDataStructure[col + 1];
+                let localEdges = [];
 
-                let candidateTargets = [];
-                if (minTargetIdx > 0) candidateTargets.push(minTargetIdx - 1);
-                if (maxTargetIdx < nextLayer.length - 1) candidateTargets.push(maxTargetIdx + 1);
+                currentLayer.forEach(u => {
+                    let closestV = nextLayer[0];
+                    let minDistance = Infinity;
 
-                candidateTargets.forEach(targetIdx => {
-                    if (myRandom() < 0.35) {
-                        let v = nextLayer[targetIdx];
+                    nextLayer.forEach(v => {
+                        let dist = Math.abs(u.y - v.y);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            closestV = v;
+                        }
+                    });
+                    localEdges.push({
+                        from: u.id,
+                        to: closestV.id,
+                        fromIdx: u.nodeIdx,
+                        toIdx: closestV.nodeIdx
+                    });
+                });
 
-                        let crosses = localEdges.some(existingEdge => {
-                            return (u.nodeIdx < existingEdge.fromIdx && targetIdx > existingEdge.toIdx) ||
-                                (u.nodeIdx > existingEdge.fromIdx && targetIdx < existingEdge.toIdx);
+                nextLayer.forEach(v => {
+                    let closestU = currentLayer[0];
+                    let minDistance = Infinity;
+
+                    currentLayer.forEach(u => {
+                        let dist = Math.abs(u.y - v.y);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            closestU = u;
+                        }
+                    });
+
+                    if (!localEdges.some(e => e.from === closestU.id && e.to === v.id)) {
+                        localEdges.push({
+                            from: closestU.id,
+                            to: v.id,
+                            fromIdx: closestU.nodeIdx,
+                            toIdx: v.nodeIdx
                         });
-
-                        if (!crosses) {
-                            localEdges.push({
-                                from: u.id,
-                                to: v.id,
-                                fromIdx: u.nodeIdx,
-                                toIdx: v.nodeIdx
-                            });
-                        }
                     }
                 });
-            });
 
-            localEdges.forEach(e => globalEdges.push(e));
-        }
+                currentLayer.forEach(u => {
+                    let connectedIndices = localEdges.filter(e => e.from === u.id).map(e => e.toIdx);
+                    let minTargetIdx = Math.min(...connectedIndices);
+                    let maxTargetIdx = Math.max(...connectedIndices);
 
-        // ==========================================================================
-        // 🎨 RENDER MAP GRAPHICS (RUNS EXACTLY ONCE)
-        // ==========================================================================
+                    let candidateTargets = [];
+                    if (minTargetIdx > 0) candidateTargets.push(minTargetIdx - 1);
+                    if (maxTargetIdx < nextLayer.length - 1) candidateTargets.push(maxTargetIdx + 1);
 
-        // 1. Render HTML Elements
-        for (let col = 0; col <= totalColumns; col++) {
-            mapDataStructure[col].forEach(node => {
-                const nodeAnchor = document.createElement('a');
-                nodeAnchor.id = node.id;
-                nodeAnchor.className = `rpg-node rpg-node-${node.type}`;
-                nodeAnchor.style.position = 'absolute';
-                nodeAnchor.style.left = `${node.x}px`;
-                nodeAnchor.style.top = `${node.y}px`;
+                    candidateTargets.forEach(targetIdx => {
+                        if (myRandom() < 0.35) {
+                            let v = nextLayer[targetIdx];
 
-                const labelSpan = document.createElement('span');
-                labelSpan.className = 'node-title-label';
-                labelSpan.textContent = node.label;
-                labelSpan.style.cssText = "position: absolute; bottom: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; color: #ffffff; text-shadow: 2px 2px 0px #000; font-weight: bold; font-size: 14px; pointer-events: none; z-index: 100;";
+                            let crosses = localEdges.some(existingEdge => {
+                                return (u.nodeIdx < existingEdge.fromIdx && targetIdx > existingEdge.toIdx) ||
+                                    (u.nodeIdx > existingEdge.fromIdx && targetIdx < existingEdge.toIdx);
+                            });
 
-                nodeAnchor.appendChild(labelSpan);
-                mapContainer.appendChild(nodeAnchor);
-            });
-        }
-
-        // 2. Parse Routing Constraints
-        let accessibleTargets = [];
-        if (currentPlayerNodeId) {
-            globalEdges.forEach(edge => {
-                if (edge.from === currentPlayerNodeId) accessibleTargets.push(edge.to);
-            });
-        } else {
-            accessibleTargets = [mapDataStructure[0][0].id];
-        }
-
-        const nodeRoutes = {
-            "rpg-node-combat": `in-combat/index.php?p=combat_level1&id=${playerId}`,
-            "rpg-node-shop": `index.php?p=shop1&id=${playerId}`,
-            "rpg-node-event": `index.php?p=event1&id=${playerId}`,
-            "rpg-node-elite": `in-combat/index.php?p=elite1&id=${playerId}`,
-            "rpg-node-boss": `in-combat/index.php?p=boss1&id=${playerId}`
-        };
-
-        const domNodes = document.querySelectorAll('.rpg-node');
-        domNodes.forEach(node => {
-            node.setAttribute("draggable", "false");
-
-            if (node.id === currentPlayerNodeId) {
-                node.classList.add("rpg-node-current");
-                return;
-            }
-
-            if (accessibleTargets.includes(node.id)) {
-                node.classList.add("rpg-node-next");
-                node.addEventListener("click", function(e) {
-                    e.preventDefault();
-                    let destinationUrl = "#";
-                    for (const [nodeClass, url] of Object.entries(nodeRoutes)) {
-                        if (node.classList.contains(nodeClass)) {
-                            destinationUrl = url;
-                            break;
+                            if (!crosses) {
+                                localEdges.push({
+                                    from: u.id,
+                                    to: v.id,
+                                    fromIdx: u.nodeIdx,
+                                    toIdx: v.nodeIdx
+                                });
+                            }
                         }
-                    }
-
-                    if (node.id === mapDataStructure[0][0].id && !currentPlayerNodeId) {
-                        const formData = new FormData();
-                        formData.append("player_id", playerId);
-                        fetch("pages/processes/start_run.php", {
-                                method: "POST",
-                                body: formData
-                            })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) window.location.reload();
-                            });
-                        return;
-                    }
-
-                    if (destinationUrl !== "#") {
-                        const nodeUpdateData = new FormData();
-                        nodeUpdateData.append("player_id", playerId);
-                        nodeUpdateData.append("node_id", node.id);
-                        fetch("pages/processes/update_node.php", {
-                                method: "POST",
-                                body: nodeUpdateData
-                            })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) window.location.href = destinationUrl;
-                            });
-                    }
+                    });
                 });
-                return;
+
+                localEdges.forEach(e => globalEdges.push(e));
             }
 
-            if (node.id !== mapDataStructure[0][0].id || currentPlayerNodeId !== null) {
-                node.classList.add("rpg-node-locked");
+            for (let col = 0; col <= totalColumns; col++) {
+                mapDataStructure[col].forEach(node => {
+                    const nodeAnchor = document.createElement('a');
+                    nodeAnchor.id = node.id;
+                    nodeAnchor.className = `rpg-node rpg-node-${node.type}`;
+                    nodeAnchor.style.position = 'absolute';
+                    nodeAnchor.style.left = `${node.x}px`;
+                    nodeAnchor.style.top = `${node.y}px`;
+
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = 'node-title-label';
+                    labelSpan.textContent = node.label;
+                    labelSpan.style.cssText = "position: absolute; bottom: -35px; left: 50%; transform: translateX(-50%); white-space: nowrap; color: #ffffff; text-shadow: 2px 2px 0px #000; font-weight: bold; font-size: 14px; pointer-events: none; z-index: 100;";
+
+                    nodeAnchor.appendChild(labelSpan);
+                    mapContainer.appendChild(nodeAnchor);
+                });
             }
-        });
 
-        // 3. Player Tracker Visuals
-        if (currentPlayerNodeId) {
-            const activeNodeElement = document.getElementById(currentPlayerNodeId);
-            if (activeNodeElement) {
-                activeNodeElement.classList.add("player-pointer");
-                activeNodeElement.setAttribute("data-class", characterClass.toLowerCase());
+            let accessibleTargets = [];
+            if (currentPlayerNodeId) {
+                globalEdges.forEach(edge => {
+                    if (edge.from === currentPlayerNodeId) accessibleTargets.push(edge.to);
+                });
+            } else {
+                accessibleTargets = [mapDataStructure[0][0].id];
             }
-        }
 
-        // 4. SVG Vector Lines
-        if (freshSvgContainer) {
-            freshSvgContainer.innerHTML = "";
-            freshSvgContainer.setAttribute("width", canvasWidth);
-            freshSvgContainer.setAttribute("height", canvasHeight);
+            const nodeRoutes = {
+                "rpg-node-combat": `in-combat/index.php?p=combat_level1&id=${playerId}`,
+                "rpg-node-shop": `index.php?p=shop1&id=${playerId}`,
+                "rpg-node-event": `index.php?p=event1&id=${playerId}`,
+                "rpg-node-elite": `in-combat/index.php?p=elite1&id=${playerId}`,
+                "rpg-node-boss": `in-combat/index.php?p=boss1&id=${playerId}`
+            };
 
-            globalEdges.forEach(edge => {
-                const fromNodeEl = document.getElementById(edge.from);
-                const toNodeEl = document.getElementById(edge.to);
+            const domNodes = document.querySelectorAll('.rpg-node');
+            domNodes.forEach(node => {
+                node.setAttribute("draggable", "false");
 
-                if (fromNodeEl && toNodeEl) {
-                    const startX = parseInt(fromNodeEl.style.left) + (fromNodeEl.offsetWidth / 2 || 60);
-                    const startY = parseInt(fromNodeEl.style.top) + (fromNodeEl.offsetHeight / 2 || 60);
-                    const endX = parseInt(toNodeEl.style.left) + (toNodeEl.offsetWidth / 2 || 60);
-                    const endY = parseInt(toNodeEl.style.top) + (toNodeEl.offsetHeight / 2 || 60);
+                if (node.id === currentPlayerNodeId) {
+                    node.classList.add("rpg-node-current");
+                    return;
+                }
 
-                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                    line.setAttribute("x1", startX);
-                    line.setAttribute("y1", startY);
-                    line.setAttribute("x2", endX);
-                    line.setAttribute("y2", endY);
-                    line.setAttribute("stroke", "white");
-                    line.setAttribute("stroke-width", "4");
-                    line.setAttribute("stroke-dasharray", "10 12");
-                    line.setAttribute("data-from", edge.from);
-                    line.setAttribute("data-to", edge.to);
-                    freshSvgContainer.appendChild(line);
+                if (accessibleTargets.includes(node.id)) {
+                    node.classList.add("rpg-node-next");
+                    node.addEventListener("click", function(e) {
+                        e.preventDefault();
+                        let destinationUrl = "#";
+                        for (const [nodeClass, url] of Object.entries(nodeRoutes)) {
+                            if (node.classList.contains(nodeClass)) {
+                                destinationUrl = url;
+                                break;
+                            }
+                        }
+
+                        if (node.id === mapDataStructure[0][0].id && !currentPlayerNodeId) {
+                            const formData = new FormData();
+                            formData.append("player_id", playerId);
+                            fetch("pages/processes/start_run.php", {
+                                    method: "POST",
+                                    body: formData
+                                })
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (data.success) window.location.reload();
+                                });
+                            return;
+                        }
+
+                        if (destinationUrl !== "#") {
+                            const nodeUpdateData = new FormData();
+                            nodeUpdateData.append("player_id", playerId);
+                            nodeUpdateData.append("node_id", node.id);
+                            fetch("pages/processes/update_node.php", {
+                                    method: "POST",
+                                    body: nodeUpdateData
+                                })
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (data.success) window.location.href = destinationUrl;
+                                });
+                        }
+                    });
+                    return;
+                }
+
+                if (node.id !== mapDataStructure[0][0].id || currentPlayerNodeId !== null) {
+                    node.classList.add("rpg-node-locked");
                 }
             });
-        }
-
-        // ==========================================================================
-        // 🎥 SYNCED CAMERA TRANSFORM ENGINE
-        // ==========================================================================
-        window.autoCenterCameraOnActiveNode = function() {
-            let targetNodeElement = null;
 
             if (currentPlayerNodeId) {
-                targetNodeElement = document.getElementById(currentPlayerNodeId);
-            } else if (mapDataStructure[0] && mapDataStructure[0][0]) {
-                targetNodeElement = document.getElementById(mapDataStructure[0][0].id);
+                const activeNodeElement = document.getElementById(currentPlayerNodeId);
+                if (activeNodeElement) {
+                    activeNodeElement.classList.add("player-pointer");
+                    activeNodeElement.setAttribute("data-class", characterClass.toLowerCase());
+                }
             }
 
-            if (!viewport || !mapContainer || !targetNodeElement) return;
+            if (freshSvgContainer) {
+                freshSvgContainer.innerHTML = "";
+                freshSvgContainer.setAttribute("width", canvasWidth);
+                freshSvgContainer.setAttribute("height", canvasHeight);
 
-            const nodeX = parseInt(targetNodeElement.style.left) || 0;
-            const nodeY = parseInt(targetNodeElement.style.top) || 0;
+                globalEdges.forEach(edge => {
+                    const fromNodeEl = document.getElementById(edge.from);
+                    const toNodeEl = document.getElementById(edge.to);
 
-            const viewportWidth = viewport.clientWidth;
-            const viewportHeight = viewport.clientHeight;
+                    if (fromNodeEl && toNodeEl) {
+                        const startX = parseInt(fromNodeEl.style.left) + (fromNodeEl.offsetWidth / 2 || 60);
+                        const startY = parseInt(fromNodeEl.style.top) + (fromNodeEl.offsetHeight / 2 || 60);
+                        const endX = parseInt(toNodeEl.style.left) + (toNodeEl.offsetWidth / 2 || 60);
+                        const endY = parseInt(toNodeEl.style.top) + (toNodeEl.offsetHeight / 2 || 60);
 
-            const nodeWidth = targetNodeElement.offsetWidth || 60;
-            const nodeHeight = targetNodeElement.offsetHeight || 60;
+                        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                        line.setAttribute("x1", startX);
+                        line.setAttribute("y1", startY);
+                        line.setAttribute("x2", endX);
+                        line.setAttribute("y2", endY);
+                        line.setAttribute("stroke", "white");
+                        line.setAttribute("stroke-width", "4");
+                        line.setAttribute("stroke-dasharray", "10 12");
+                        line.setAttribute("data-from", edge.from);
+                        line.setAttribute("data-to", edge.to);
+                        freshSvgContainer.appendChild(line);
+                    }
+                });
+            }
 
-            window.mapTranslateX = (viewportWidth / 2) - (nodeX + (nodeWidth / 2)) * window.mapScale;
-            window.mapTranslateY = (viewportHeight / 2) - (nodeY + (nodeHeight / 2)) * window.mapScale;
+            window.autoCenterCameraOnActiveNode = function() {
+                let targetNodeElement = null;
 
-            mapContainer.style.transition = "transform 0.5s ease-out";
-            mapContainer.style.transform = `translate(${window.mapTranslateX}px, ${window.mapTranslateY}px) scale(${window.mapScale})`;
-
-            setTimeout(() => {
-                if (mapContainer) mapContainer.style.transition = "none";
-            }, 500);
-        };
-
-        // Fire auto-centering right after dynamic injection pass wraps up
-        setTimeout(window.autoCenterCameraOnActiveNode, 200);
-
-        // ==========================================================================
-        // 🫳 UNIFIED CANVAS INTERACTIVE DRAG MATRIX
-        // ==========================================================================
-        if (viewport && mapContainer) {
-            viewport.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                mapContainer.style.transition = "none";
-                
-                dragStartX = e.clientX - window.mapTranslateX;
-                dragStartY = e.clientY - window.mapTranslateY;
-                mapContainer.style.cursor = 'grabbing';
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                window.mapTranslateX = e.clientX - dragStartX;
-                window.mapTranslateY = e.clientY - dragStartY;
-                mapContainer.style.transform = `translate(${window.mapTranslateX}px, ${window.mapTranslateY}px) scale(${window.mapScale})`;
-            });
-
-            document.addEventListener('mouseup', () => {
-                isDragging = false;
-                mapContainer.style.cursor = 'grab';
-            });
-        }
-
-        const zoomInBtn = document.getElementById('zoomIn');
-        if (zoomInBtn) {
-            zoomInBtn.addEventListener('click', () => {
-                window.mapScale += 0.1;
-                mapContainer.style.transform = `translate(${window.mapTranslateX}px, ${window.mapTranslateY}px) scale(${window.mapScale})`;
-            });
-        }
-
-        const zoomOutBtn = document.getElementById('zoomOut');
-        if (zoomOutBtn) {
-            zoomOutBtn.addEventListener('click', () => {
-                window.mapScale -= 0.1;
-                if (window.mapScale < 0.2) window.mapScale = 0.2;
-                mapContainer.style.transform = `translate(${window.mapTranslateX}px, ${window.mapTranslateY}px) scale(${window.mapScale})`;
-            });
-        }
-
-        const centerMapBtn = document.getElementById('centerMap');
-        if (centerMapBtn) {
-            centerMapBtn.addEventListener('click', () => {
-                if (typeof window.autoCenterCameraOnActiveNode === 'function') {
-                    window.autoCenterCameraOnActiveNode();
+                if (currentPlayerNodeId) {
+                    targetNodeElement = document.getElementById(currentPlayerNodeId);
+                } else if (mapDataStructure[0] && mapDataStructure[0][0]) {
+                    targetNodeElement = document.getElementById(mapDataStructure[0][0].id);
                 }
-            });
-        }
-    });
+
+                if (!viewport || !mapContainer || !targetNodeElement) return;
+
+                const nodeX = parseInt(targetNodeElement.style.left) || 0;
+                const nodeY = parseInt(targetNodeElement.style.top) || 0;
+
+                const viewportWidth = viewport.clientWidth;
+                const viewportHeight = viewport.clientHeight;
+
+                const nodeWidth = targetNodeElement.offsetWidth || 60;
+                const nodeHeight = targetNodeElement.offsetHeight || 60;
+
+                window.mapTranslateX = (viewportWidth / 2) - (nodeX + (nodeWidth / 2)) * window.mapScale;
+                window.mapTranslateY = (viewportHeight / 2) - (nodeY + (nodeHeight / 2)) * window.mapScale;
+
+                mapContainer.style.transition = "transform 0.5s ease-out";
+                mapContainer.style.transform = `translate(${window.mapTranslateX}px, ${window.mapTranslateY}px) scale(${window.mapScale})`;
+
+                setTimeout(() => {
+                    if (mapContainer) mapContainer.style.transition = "none";
+                }, 500);
+            };
+
+            setTimeout(window.autoCenterCameraOnActiveNode, 200);
+
+            if (viewport && mapContainer) {
+                viewport.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    mapContainer.style.transition = "none";
+
+                    dragStartX = e.clientX - window.mapTranslateX;
+                    dragStartY = e.clientY - window.mapTranslateY;
+                    mapContainer.style.cursor = 'grabbing';
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    window.mapTranslateX = e.clientX - dragStartX;
+                    window.mapTranslateY = e.clientY - dragStartY;
+                    mapContainer.style.transform = `translate(${window.mapTranslateX}px, ${window.mapTranslateY}px) scale(${window.mapScale})`;
+                });
+
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                    mapContainer.style.cursor = 'grab';
+                });
+            }
+
+            const zoomInBtn = document.getElementById('zoomIn');
+            if (zoomInBtn) {
+                zoomInBtn.addEventListener('click', () => {
+                    window.mapScale += 0.1;
+                    mapContainer.style.transform = `translate(${window.mapTranslateX}px, ${window.mapTranslateY}px) scale(${window.mapScale})`;
+                });
+            }
+
+            const zoomOutBtn = document.getElementById('zoomOut');
+            if (zoomOutBtn) {
+                zoomOutBtn.addEventListener('click', () => {
+                    window.mapScale -= 0.1;
+                    if (window.mapScale < 0.2) window.mapScale = 0.2;
+                    mapContainer.style.transform = `translate(${window.mapTranslateX}px, ${window.mapTranslateY}px) scale(${window.mapScale})`;
+                });
+            }
+
+            const centerMapBtn = document.getElementById('centerMap');
+            if (centerMapBtn) {
+                centerMapBtn.addEventListener('click', () => {
+                    if (typeof window.autoCenterCameraOnActiveNode === 'function') {
+                        window.autoCenterCameraOnActiveNode();
+                    }
+                });
+            }
+        });
+    })();
 </script>
 
 <script>
@@ -1296,13 +1269,17 @@ if ($id > 0) {
 </script>
 
 <script>
-    // --- CONSUMABLE INVENTORY DISPATCH MATRIX ---
+    // ==========================================================================
+    // 🧪 CONSUMABLES & DECAY MECHANICS
+    // ==========================================================================
     $(document).ready(function() {
         $(document).on('click', '.ajax-use-consumable-btn', function() {
             const button = $(this);
             const bagId = button.data('bag-id');
             const playerId = button.data('player-id');
-            const maxHp = button.data('max-hp');
+            
+            const currentClientMaxHp = parseInt($('#stat-display-max-hp').text()) || 100;
+            const itemRowContainer = button.closest('.row.mb-2');
 
             button.prop('disabled', true).text('Processing...');
 
@@ -1312,12 +1289,42 @@ if ($id > 0) {
                 data: {
                     player_id: playerId,
                     bag_id: bagId,
-                    client_max_hp: maxHp
+                    client_max_hp: currentClientMaxHp
                 },
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
-                        window.location.reload();
+                        console.log("HUD Update Engine: " + response.message);
+
+                        if (response.new_hp !== undefined) {
+                            const newHp = parseInt(response.new_hp);
+                            const percent = (newHp / currentClientMaxHp) * 100;
+
+                            $('#hud-hp-bar, #sheet-hp-bar').css('width', percent + '%').attr('aria-valuenow', newHp);
+                            
+                            $('#hud-hp-text').text(newHp + ' / ' + currentClientMaxHp);
+                            $('#sheet-hp-text').text(newHp + ' / ' + currentClientMaxHp + ' HP');
+                        }
+
+                        if (response.new_max_hp !== undefined) { $('#stat-display-max-hp').text(response.new_max_hp); }
+                        if (response.new_str !== undefined)    { $('#stat-display-str').text(response.new_str); }
+                        if (response.new_def !== undefined)    { $('#stat-display-def').text(response.new_def); }
+                        if (response.new_dex !== undefined)    { $('#stat-display-dex').text(response.new_dex); }
+                        if (response.new_int !== undefined)    { $('#stat-display-int').text(response.new_int); }
+                        if (response.new_fth !== undefined)    { $('#stat-display-fth').text(response.new_fth); }
+
+                        if (response.item_depleted) {
+                            itemRowContainer.slideUp(300, function() {
+                                $(this).remove();
+                                if ($('#modal-inventory-wrapper .row.mb-2').length === 0) {
+                                    $('#modal-inventory-wrapper').html('<div class="col-12 text-center text-muted py-3">Your bag is empty!</div>');
+                                }
+                            });
+                        } else if (response.new_qty !== undefined) {
+                            itemRowContainer.find('.item-qty-label').html('x' + response.new_qty + ' ▾');
+                            button.prop('disabled', false).text('Use Consumable');
+                        }
+
                     } else {
                         alert('Action Failed: ' + response.message);
                         button.prop('disabled', false).text('Use Consumable');
@@ -1327,6 +1334,47 @@ if ($id > 0) {
                     console.error('AJAX Error:', error);
                     alert('An error occurred on the server.');
                     button.prop('disabled', false).text('Use Consumable');
+                }
+            });
+        });
+
+        // ==========================================================================
+        // 🗑️ DROP ITEM MECHANICS
+        // ==========================================================================
+        $(document).on('click', '.ajax-drop-item-btn', function() {
+            const button = $(this);
+            const bagId = button.data('bag-id');
+            const playerId = button.data('player-id');
+            const itemRowContainer = button.closest('.row.mb-2');
+
+            if (!confirm("Are you sure you want to discard this item permanently?")) return;
+
+            button.prop('disabled', true).text('Dropping...');
+
+            $.ajax({
+                url: 'pages/processes/drop_item.php',
+                type: 'POST',
+                data: {
+                    player_id: playerId,
+                    bag_id: bagId
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        itemRowContainer.slideUp(300, function() {
+                            $(this).remove();
+                            if ($('#modal-inventory-wrapper .row.mb-2').length === 0) {
+                                $('#modal-inventory-wrapper').html('<div class="col-12 text-center text-muted py-3">Your bag is empty!</div>');
+                            }
+                        });
+                    } else {
+                        alert('Drop Failed: ' + response.message);
+                        button.prop('disabled', false).text('Drop');
+                    }
+                },
+                error: function() {
+                    alert('An error occurred on the server while discarding item.');
+                    button.prop('disabled', false).text('Drop');
                 }
             });
         });
