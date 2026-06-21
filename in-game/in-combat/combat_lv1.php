@@ -259,50 +259,18 @@ if (!empty($player_data)) {
     }
 
     @keyframes pulseReady {
-        0% {
-            box-shadow: 0 0 0 0 rgba(255, 157, 65, 0.7);
-        }
-
-        70% {
-            box-shadow: 0 0 0 15px rgba(255, 157, 65, 0);
-        }
-
-        100% {
-            box-shadow: 0 0 0 0 rgba(255, 157, 65, 0);
-        }
+        0% { box-shadow: 0 0 0 0 rgba(255, 157, 65, 0.7); }
+        70% { box-shadow: 0 0 0 15px rgba(255, 157, 65, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 157, 65, 0); }
     }
 
     @keyframes pulse {
-
-        0%,
-        100% {
-            transform: scale(1);
-        }
-
-        50% {
-            transform: scale(1.04);
-        }
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.04); }
     }
 
-    @keyframes slideDown {
-        from {
-            transform: translateY(-100%);
-        }
-
-        to {
-            transform: translateY(0);
-        }
-    }
-
-    @keyframes slideUp {
-        from {
-            transform: translateY(0);
-        }
-
-        to {
-            transform: translateY(-100%);
-        }
-    }
+    @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+    @keyframes slideUp { from { transform: translateY(0); } to { transform: translateY(-100%); } }
 
     main {
         opacity: 0;
@@ -322,129 +290,47 @@ if (!empty($player_data)) {
        ⚔️ BATTLE ANIMATIONS & FX
        ========================================================================== */
     @keyframes battleFloat {
-        0% {
-            transform: translateY(0px);
-        }
-
-        50% {
-            transform: translateY(-10px);
-        }
-
-        100% {
-            transform: translateY(0px);
-        }
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0px); }
     }
 
     @keyframes snappyJolt {
-        0% {
-            transform: translate(0, 0);
-        }
-
-        15% {
-            transform: translate(-4px, 2px);
-        }
-
-        30% {
-            transform: translate(4px, -2px);
-        }
-
-        45% {
-            transform: translate(-3px, -1px);
-        }
-
-        60% {
-            transform: translate(3px, 2px);
-        }
-
-        75% {
-            transform: translate(-1px, -1px);
-        }
-
-        90% {
-            transform: translate(1px, 1px);
-        }
-
-        100% {
-            transform: translate(0, 0);
-        }
+        0% { transform: translate(0, 0); }
+        15% { transform: translate(-4px, 2px); }
+        30% { transform: translate(4px, -2px); }
+        45% { transform: translate(-3px, -1px); }
+        60% { transform: translate(3px, 2px); }
+        75% { transform: translate(-1px, -1px); }
+        90% { transform: translate(1px, 1px); }
+        100% { transform: translate(0, 0); }
     }
 
     @keyframes cutInSlice {
-        0% {
-            transform: translate(-50%, -50%) scaleX(0);
-            opacity: 0;
-        }
-
-        15% {
-            transform: translate(-50%, -50%) scaleX(1.1);
-            opacity: 1;
-        }
-
-        20% {
-            transform: translate(-50%, -50%) scaleX(1);
-        }
-
-        80% {
-            transform: translate(-50%, -50%) scaleX(1);
-            opacity: 1;
-            filter: brightness(1);
-        }
-
-        95% {
-            transform: translate(-50%, -50%) scaleX(1.05);
-            opacity: 0.5;
-        }
-
-        100% {
-            transform: translate(-50%, -50%) scaleX(0);
-            opacity: 0;
-            filter: brightness(2);
-        }
+        0% { transform: translate(-50%, -50%) scaleX(0); opacity: 0; }
+        15% { transform: translate(-50%, -50%) scaleX(1.1); opacity: 1; }
+        20% { transform: translate(-50%, -50%) scaleX(1); }
+        80% { transform: translate(-50%, -50%) scaleX(1); opacity: 1; filter: brightness(1); }
+        95% { transform: translate(-50%, -50%) scaleX(1.05); opacity: 0.5; }
+        100% { transform: translate(-50%, -50%) scaleX(0); opacity: 0; filter: brightness(2); }
     }
 
     @keyframes eyeGlance {
-        0% {
-            transform: scale(1.3) translate(-10px, 0);
-            filter: saturate(0.5);
-        }
-
-        20% {
-            transform: scale(1.1) translate(0, 0);
-            filter: saturate(1.2);
-        }
-
-        80% {
-            transform: scale(1.1) translate(5px, 0);
-        }
-
-        100% {
-            transform: scale(1.4) translate(20px, 0);
-        }
+        0% { transform: scale(1.3) translate(-10px, 0); filter: saturate(0.5); }
+        20% { transform: scale(1.1) translate(0, 0); filter: saturate(1.2); }
+        80% { transform: scale(1.1) translate(5px, 0); }
+        100% { transform: scale(1.4) translate(20px, 0); }
     }
 
     /* --- 🌟 VICTORY SCREEN ANIMATIONS --- */
     @keyframes victoryFadeIn {
-        from {
-            opacity: 0;
-            backdrop-filter: blur(0px);
-        }
-
-        to {
-            opacity: 1;
-            backdrop-filter: blur(5px);
-        }
+        from { opacity: 0; backdrop-filter: blur(0px); }
+        to { opacity: 1; backdrop-filter: blur(5px); }
     }
 
     @keyframes victoryPopIn {
-        0% {
-            transform: scale(0.8) translateY(20px);
-            opacity: 0;
-        }
-
-        100% {
-            transform: scale(1) translateY(0);
-            opacity: 1;
-        }
+        0% { transform: scale(0.8) translateY(20px); opacity: 0; }
+        100% { transform: scale(1) translateY(0); opacity: 1; }
     }
 
     .victory-screen-overlay {
@@ -486,9 +372,7 @@ if (!empty($player_data)) {
         transition: opacity 0.2s ease;
     }
 
-    .persona-cutin-overlay.active {
-        opacity: 1;
-    }
+    .persona-cutin-overlay.active { opacity: 1; }
 
     .persona-banner-line {
         position: fixed;
@@ -524,17 +408,9 @@ if (!empty($player_data)) {
         animation: eyeGlance 1.4s cubic-bezier(0.1, 0.8, 0.1, 1) forwards;
     }
 
-    .enemy-jolt {
-        animation: snappyJolt 0.15s ease-in-out both;
-    }
-
-    .shake-trigger {
-        animation: snappyJolt 0.15s ease-in-out both;
-    }
-
-    .enemy-hover-float {
-        animation: battleFloat 3.2s ease-in-out infinite;
-    }
+    .enemy-jolt { animation: snappyJolt 0.15s ease-in-out both; }
+    .shake-trigger { animation: snappyJolt 0.15s ease-in-out both; }
+    .enemy-hover-float { animation: battleFloat 3.2s ease-in-out infinite; }
 
     .turn-card {
         border-radius: 6px;
@@ -552,22 +428,11 @@ if (!empty($player_data)) {
         transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.2s ease, outline 0.2s ease;
     }
 
-    .enemy-sprite {
-        transition: filter 0.15s ease-in-out;
-    }
+    .enemy-sprite { transition: filter 0.15s ease-in-out; }
+    .enemy-hurt { filter: brightness(0.6) sepia(1) hue-rotate(-50deg) saturate(6) opacity(0.6) !important; }
+    .active-turn-scale { transform: scale(1.5) !important; z-index: 10; }
 
-    .enemy-hurt {
-        filter: brightness(0.6) sepia(1) hue-rotate(-50deg) saturate(6) opacity(0.6) !important;
-    }
-
-    .active-turn-scale {
-        transform: scale(1.5) !important;
-        z-index: 10;
-    }
-
-    #hud-interaction-deck {
-        transition: transform 0.3s ease, outline 0.2s ease;
-    }
+    #hud-interaction-deck { transition: transform 0.3s ease, outline 0.2s ease; }
 
     .active-player-stage-glow {
         outline: 4px solid #ff9d41 !important;
@@ -576,9 +441,25 @@ if (!empty($player_data)) {
         border-radius: 4px;
     }
 
-    #btn-attack,
-    .skill-btn {
-        transition: all 0.15s ease;
+    #btn-attack, .skill-btn { transition: all 0.15s ease; }
+
+    /* --- 🔮 RPG TOOLTIP PANEL GRAPHICS --- */
+    #rpg-cursor-tooltip {
+        position: fixed;
+        padding: 10px 14px;
+        background: #2D1B13;
+        color: #F3E5D8;
+        font-size: 0.85rem;
+        border: 2px solid #ff9d41;
+        border-radius: 6px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7), inset 0 0 6px rgba(255, 157, 65, 0.2);
+        z-index: 10000;
+        pointer-events: none;
+        display: none;
+        max-width: 260px;
+        line-height: 1.35;
+        text-shadow: 1px 1px 2px #000;
+        transform: translate(15px, 15px);
     }
 </style>
 
@@ -591,6 +472,8 @@ if (!empty($player_data)) {
 <div class="persona-banner-line" id="ultimate-cutin-line">
     <img src="../../asset/sprites/classes/<?= htmlspecialchars($player_data['avatar'] ?? 'player_avatar.png') ?>" class="persona-eyes-img" id="cutin-eyes-asset" alt="Eyes View">
 </div>
+
+<div id="rpg-cursor-tooltip"></div>
 
 <main>
     <div class="d-flex flex-column justify-content-between h-100 p-3" style="user-select: none;">
@@ -670,7 +553,7 @@ if (!empty($player_data)) {
                                             style="background-color: #8B5A3C; color: white; border: 2px solid #5A3A2A; border-radius: 8px;"
                                             onclick="triggerSkillSelection(<?= intval($skill['skill_id']) ?>, this)"
                                             data-skill-id="<?= htmlspecialchars($skill['skill_id']) ?>"
-                                            title="<?= htmlspecialchars($skill['skill_desc']) ?>">
+                                            data-tooltip="📝 <?= htmlspecialchars($skill['skill_desc'] ?? 'Skill calculation description profile index.') ?>">
                                             <div><?= htmlspecialchars($skill['skill_name']) ?></div>
                                             <small class="text-warning" style="font-size:0.75rem;">
                                                 🔮 Cost: <?= htmlspecialchars($skill['mana_cost']) ?> | 🎯 Area: <?= htmlspecialchars(ucfirst($skill['skill_area'] ?? 'Enemy')) ?>
@@ -811,43 +694,21 @@ if (!empty($player_data)) {
     function playSFX(soundName) {
         if (window.sfx && window.sfx[soundName]) {
             window.sfx[soundName].currentTime = 0;
-            window.sfx[soundName].play().catch(err => {
-                console.log("Audio constraints: Audio pending gesture action.", err);
-            });
+            window.sfx[soundName].play().catch(() => {});
         }
     }
 
-    // --- NEW: Map DB IDs to your icons (Update these IDs to match your database!) ---
     const statusEffectMap = {
-        1: {
-            name: 'Poison',
-            icon: 'poison.png',
-            dotDmg: 5
-        },
-        2: {
-            name: 'Burn',
-            icon: 'burn.png',
-            dotDmg: 8
-        },
-        3: {
-            name: 'Bleed',
-            icon: 'bleed.png',
-            dotDmg: 10
-        },
-        4: {
-            name: 'Freezerburn',
-            icon: 'freezerburn.png',
-            dotDmg: 12
-        }
+        1: { name: 'Poison', icon: 'poison.png', dotDmg: 5 },
+        2: { name: 'Burn', icon: 'burn.png', dotDmg: 8 },
+        3: { name: 'Bleed', icon: 'bleed.png', dotDmg: 10 },
+        4: { name: 'Freezerburn', icon: 'freezerburn.png', dotDmg: 12 }
     };
 
-    // --- NEW: UI Update function for Status Icons ---
     function renderStatusEffectsUI(enemy) {
         const container = document.getElementById(`enemy-statuses-${enemy.id}`);
         if (!container) return;
-
         container.innerHTML = '';
-
         if (!enemy.active_statuses || enemy.active_statuses.length === 0) return;
 
         enemy.active_statuses.forEach(status => {
@@ -856,10 +717,9 @@ if (!empty($player_data)) {
                 container.innerHTML += `
                     <div class="position-relative" title="${effectData.name} (${status.duration_left} turns)">
                         <img src="../../asset/status_effects/${effectData.icon}" style="width: 20px; height: 20px;border: 1px solid #D39670; margin: 0 3px;background-color:#FAC79B; border-radius: 4px;" alt="${effectData.name}">
-                        <span class="position-absolute badge rounded-pill" 
-      style="font-size: 0.52rem; padding: 0.15em 0.3em; bottom: -4px; right: -2px; color:#000;">
-    ${status.duration_left}
-</span>
+                        <span class="position-absolute badge rounded-pill" style="font-size: 0.52rem; padding: 0.15em 0.3em; bottom: -4px; right: -2px; color:#000;">
+                            ${status.duration_left}
+                        </span>
                     </div>
                 `;
             }
@@ -876,26 +736,21 @@ if (!empty($player_data)) {
             descText.includes('all enemies') || descText.includes('aoe')) {
             return 'aoe';
         }
-
         if (cleanText === 'self' || cleanText === 'player' || cleanText.includes('self') ||
             descText.includes('self') || descText.includes('heal yourself')) {
             return 'self';
         }
-
         return 'enemy';
     }
 
     function tryUncageBattleMusic() {
         if (window.battleAudioInstance && window.battleAudioInstance.paused && !window.combatState.battleFinished) {
-            window.battleAudioInstance.play().catch(err => {
-                console.log("Audio Matrix: Browser input constraints pending target action...", err);
-            });
+            window.battleAudioInstance.play().catch(() => {});
         }
     }
 
     function fadeOutBattleMusicAndClose(durationMs = 800) {
         if (!window.battleAudioInstance || window.battleAudioInstance.paused) return;
-
         const startVolume = window.battleAudioInstance.volume;
         const fadeInterval = 50;
         const totalSteps = durationMs / fadeInterval;
@@ -929,7 +784,6 @@ if (!empty($player_data)) {
 
         dimmer.classList.add('active');
         banner.classList.add('animate');
-
         playSFX('ultimate');
 
         setTimeout(() => {
@@ -991,24 +845,15 @@ if (!empty($player_data)) {
         if (window.combatState.battleFinished) return;
 
         const livingEnemies = window.combatState.enemies.filter(e => e.alive);
-        if (livingEnemies.length === 0) {
-            processBattleEndVictory();
-            return;
-        }
-        if (window.combatState.player.hp <= 0) {
-            processBattleEndDefeat();
-            return;
-        }
+        if (livingEnemies.length === 0) { processBattleEndVictory(); return; }
+        if (window.combatState.player.hp <= 0) { processBattleEndDefeat(); return; }
 
         let index = window.combatState.currentTurnIndex;
         let combatant = window.combatState.turnOrder[index];
 
         if (combatant.type === 'enemy') {
             const enemyUnit = window.combatState.enemies.find(e => e.id == combatant.id);
-            if (!enemyUnit || !enemyUnit.alive) {
-                advanceTurnPointer();
-                return;
-            }
+            if (!enemyUnit || !enemyUnit.alive) { advanceTurnPointer(); return; }
         }
 
         window.combatState.activeUnit = combatant;
@@ -1022,13 +867,9 @@ if (!empty($player_data)) {
         } else {
             window.combatState.isPlayerTurn = false;
             toggleHUDControls(false);
-
             document.getElementById('targets-panel').style.display = 'none';
             document.getElementById('skills-panel').style.display = 'block';
-
-            setTimeout(() => {
-                executeEnemyAutomatedTurn(combatant.id);
-            }, 1200);
+            setTimeout(() => { executeEnemyAutomatedTurn(combatant.id); }, 1200);
         }
     }
 
@@ -1039,9 +880,7 @@ if (!empty($player_data)) {
 
         if (activeUnit.type === 'enemy' || activeUnit.type === 'boss') {
             const targetEl = document.getElementById(`enemy-target-${activeUnit.id}`);
-            if (targetEl) {
-                targetEl.classList.add('active-turn-scale');
-            }
+            if (targetEl) targetEl.classList.add('active-turn-scale');
         }
     }
 
@@ -1136,9 +975,7 @@ if (!empty($player_data)) {
             defendBtn.disabled = !enable;
             defendBtn.style.filter = enable ? 'none' : 'grayscale(60%)';
         }
-        if (bagBtn) {
-            bagBtn.disabled = !enable;
-        }
+        if (bagBtn) bagBtn.disabled = !enable;
     }
 
     function selectEnemyTarget(enemyId) {
@@ -1337,7 +1174,6 @@ if (!empty($player_data)) {
                 enemy.alive = false;
             }
 
-            // --- NEW: Inject Status Effects for AoE Attacks ---
             if (skill && skill.effects && skill.effects.length > 0) {
                 enemy.active_statuses = enemy.active_statuses || [];
                 skill.effects.forEach(effect => {
@@ -1347,7 +1183,7 @@ if (!empty($player_data)) {
                         inflicted_by: 'player'
                     });
                 });
-                renderStatusEffectsUI(enemy); // Update UI Instantly
+                renderStatusEffectsUI(enemy);
             }
 
             const container = document.getElementById(`enemy-target-${enemy.id}`);
@@ -1425,7 +1261,6 @@ if (!empty($player_data)) {
             enemy.alive = false;
         }
 
-        // --- NEW: Inject Status Effects for Single Target Attacks ---
         if (skill && skill.effects && skill.effects.length > 0) {
             enemy.active_statuses = enemy.active_statuses || [];
             skill.effects.forEach(effect => {
@@ -1435,7 +1270,7 @@ if (!empty($player_data)) {
                     inflicted_by: 'player'
                 });
             });
-            renderStatusEffectsUI(enemy); // Update UI Instantly
+            renderStatusEffectsUI(enemy);
             updateCombatLog(`💥 ${window.combatState.player.name} inflicts lethal status effects onto ${enemy.name}!`);
         } else {
             updateCombatLog(`${window.combatState.player.name} uses ${skill ? skill.skill_name : 'Attack'} on ${enemy.name} for ${skillDamage} damage!`);
@@ -1539,7 +1374,6 @@ if (!empty($player_data)) {
         });
     }
 
-    // --- NEW: Split out Enemy Attack logic to accommodate DoT delays ---
     function executeEnemyAutomatedTurn(enemyId) {
         if (window.combatState.battleFinished || window.combatState.player.hp <= 0) return;
 
@@ -1549,10 +1383,8 @@ if (!empty($player_data)) {
             return;
         }
 
-        // --- DoT & Duration Processing ---
         let dotTotal = 0;
         if (enemy.active_statuses && enemy.active_statuses.length > 0) {
-            // Count backwards so we can safely delete expired statuses
             for (let i = enemy.active_statuses.length - 1; i >= 0; i--) {
                 let status = enemy.active_statuses[i];
                 let effectData = statusEffectMap[status.status_effect_id];
@@ -1569,7 +1401,6 @@ if (!empty($player_data)) {
             renderStatusEffectsUI(enemy);
         }
 
-        // If they took DoT damage, apply it and visually delay before they attack
         if (dotTotal > 0) {
             enemy.hp -= dotTotal;
             updateCombatLog(`${enemy.name} takes ${dotTotal} damage from status effects!`);
@@ -1583,7 +1414,7 @@ if (!empty($player_data)) {
             const dmgPop = document.getElementById(`enemy-damage-${enemy.id}`);
             if (dmgPop) {
                 dmgPop.innerText = `-${dotTotal}`;
-                dmgPop.style.color = '#9b59b6'; // Purple visual for DoT
+                dmgPop.style.color = '#9b59b6';
                 dmgPop.classList.remove('d-none');
                 setTimeout(() => {
                     dmgPop.classList.add('d-none');
@@ -1602,9 +1433,7 @@ if (!empty($player_data)) {
                 if (container) {
                     container.style.opacity = '0.4';
                     const sprite = container.querySelector('.enemy-sprite');
-                    if (sprite) {
-                        sprite.classList.add('enemy-hurt');
-                    }
+                    if (sprite) sprite.classList.add('enemy-hurt');
                 }
 
                 updateCombatLog(`${enemy.name} succumbed to status effects!`);
@@ -1613,21 +1442,16 @@ if (!empty($player_data)) {
                     clearVisualIndicators();
                     checkBattleResult();
                 }, 1500);
-                return; // They died, end their turn early!
+                return;
             }
 
-            // They survived the DoT. Wait 1 second to read the log, then attack.
-            setTimeout(() => {
-                proceedWithEnemyAttack(enemy);
-            }, 1000);
+            setTimeout(() => { proceedWithEnemyAttack(enemy); }, 1000);
             return;
         }
 
-        // If no DoT happened, just attack immediately
         proceedWithEnemyAttack(enemy);
     }
 
-    // --- NEW: The actual physical attack portion, extracted from executeEnemyAutomatedTurn ---
     function proceedWithEnemyAttack(enemy) {
         if (window.combatState.battleFinished || window.combatState.player.hp <= 0) return;
 
@@ -1679,9 +1503,7 @@ if (!empty($player_data)) {
 
         updateCombatLog(`${enemy.name} strikes ${window.combatState.player.name} for ${enemyDmg} damage!`);
 
-        if (typeof updateTurnOrderSidebar === 'function') {
-            updateTurnOrderSidebar();
-        }
+        if (typeof updateTurnOrderSidebar === 'function') updateTurnOrderSidebar();
 
         if (playerCurrentHp <= 0) {
             processBattleEndDefeat();
@@ -1722,10 +1544,7 @@ if (!empty($player_data)) {
         for (let i = 0; i < enemyCount; i++) {
             totalExpGained += Math.floor(randRange(15, 30));
             if (Math.random() <= 0.65) {
-                generatedDrops.push({
-                    item_id: 1,
-                    name: "Health Potion"
-                });
+                generatedDrops.push({ item_id: 1, name: "Health Potion" });
             }
         }
 
@@ -1746,9 +1565,7 @@ if (!empty($player_data)) {
 
         fetch('process_rewards.php', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             })
             .then(res => res.json())
@@ -1775,16 +1592,14 @@ if (!empty($player_data)) {
                    onmouseenter="this.style.transform='scale(1.05)'; playSFX('hover');"
                    onmouseleave="this.style.transform='scale(1)';"
                    onclick="playSFX('select');">
-                   Return to Map
+                    Return to Map
                 </a>
             </div>
         `;
         document.body.appendChild(overlay);
     }
 
-    function randRange(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
+    function randRange(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
     function updateCombatLog(message) {
         const logText = document.getElementById('combat-log-text');
@@ -1795,9 +1610,7 @@ if (!empty($player_data)) {
         playSFX('select');
 
         if (window.battleAudioInstance) {
-            window.battleAudioInstance.play().catch(err => {
-                console.log("Audio Uncage Exception:", err);
-            });
+            window.battleAudioInstance.play().catch(() => {});
         }
 
         const preloader = document.getElementById('combat-preloader');
@@ -1805,9 +1618,7 @@ if (!empty($player_data)) {
             preloader.classList.add('loaded');
             setTimeout(() => preloader.remove(), 400);
         }
-
         document.body.classList.add('page-ready');
-
         setTimeout(runNextTurnSequence, 400);
     }
 
@@ -1825,11 +1636,43 @@ if (!empty($player_data)) {
         syncManaBarInterfaceDisplay();
         updateSkillButtonsCooldownUI();
 
+        const tooltipEl = document.getElementById('rpg-cursor-tooltip');
+
         document.querySelectorAll('#btn-attack, #btn-defend, #btn-bag, .skill-btn').forEach(btn => {
             btn.addEventListener('mouseenter', () => {
                 if (!btn.disabled && window.combatState.isPlayerTurn) {
                     playSFX('hover');
                 }
+            });
+        });
+
+        // Dynamic mouse tooltip tracker loops for the newly integrated deck panels
+        document.querySelectorAll('.skill-btn').forEach(btn => {
+            btn.addEventListener('mouseenter', (e) => {
+                if (btn.disabled) return;
+                const tooltipText = btn.getAttribute('data-tooltip');
+                if (tooltipText && tooltipEl) {
+                    tooltipEl.innerHTML = tooltipText;
+                    tooltipEl.style.display = 'block';
+                }
+            });
+
+            btn.addEventListener('mousemove', (e) => {
+                if (tooltipEl && tooltipEl.style.display === 'block') {
+                    tooltipEl.style.left = e.clientX + 'px';
+                    tooltipEl.style.top = e.clientY + 'px';
+                }
+            });
+
+            btn.addEventListener('mouseleave', () => {
+                if (tooltipEl) {
+                    tooltipEl.style.display = 'none';
+                    tooltipEl.innerHTML = '';
+                }
+            });
+            
+            btn.addEventListener('click', () => {
+                if (tooltipEl) tooltipEl.style.display = 'none';
             });
         });
     }

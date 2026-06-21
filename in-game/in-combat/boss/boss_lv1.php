@@ -37,7 +37,7 @@ if ($player_id > 0) {
 
 if (!empty($player_data)) {
     $player_data['name'] = $player_data['player_name'] ?? $player_data['name'] ?? 'Mimi';
-
+    
     if (!isset($max_hp) || $max_hp === null) {
         $max_hp = intval($player_data['curr_max_hp'] ?? 100);
     }
@@ -103,7 +103,7 @@ if (!$boss_row) {
 
 $player_dex = intval($player_data['dex'] ?? 10);
 $turn_order_stack[] = [
-    'id'       => $player_id,
+    'id'       => $player_id, 
     'name'     => $player_data['name'],
     'type'     => 'player',
     'sprite'   => $player_data['avatar'] ?? 'player_avatar.png',
@@ -118,7 +118,7 @@ $enemy_instance = [
     'enemy_id'   => $boss_row['boss_id'],
     'name'       => $boss_row['boss_name'],
     'enemy_name' => $boss_row['boss_name'],
-    'boss_sprite' => $boss_row['boss_sprite'],
+    'boss_sprite'=> $boss_row['boss_sprite'],
     'hp'         => intval($boss_row['boss_max_hp']),
     'max_hp'     => intval($boss_row['boss_max_hp']),
     'str'        => intval($boss_row['boss_str']),
@@ -134,7 +134,7 @@ $active_enemies[] = $enemy_instance;
 $turn_order_stack[] = [
     'id'            => 0,
     'name'          => $enemy_instance['name'],
-    'type'          => 'boss',
+    'type'          => 'boss', 
     'boss_sprite'   => $enemy_instance['boss_sprite'],
     'text_dex'      => $bossDex,
     'dex'           => $enemy_instance['dex'],
@@ -258,11 +258,9 @@ if (!empty($player_data)) {
         0% {
             box-shadow: 0 0 0 0 rgba(255, 157, 65, 0.7);
         }
-
         70% {
             box-shadow: 0 0 0 15px rgba(255, 157, 65, 0);
         }
-
         100% {
             box-shadow: 0 0 0 0 rgba(255, 157, 65, 0);
         }
@@ -272,7 +270,6 @@ if (!empty($player_data)) {
         from {
             transform: translateY(-100%);
         }
-
         to {
             transform: translateY(0);
         }
@@ -282,7 +279,6 @@ if (!empty($player_data)) {
         from {
             transform: translateY(0);
         }
-
         to {
             transform: translateY(-100%);
         }
@@ -309,11 +305,9 @@ if (!empty($player_data)) {
         0% {
             transform: translateY(0px);
         }
-
         50% {
             transform: translateY(-10px);
         }
-
         100% {
             transform: translateY(0px);
         }
@@ -323,31 +317,24 @@ if (!empty($player_data)) {
         0% {
             transform: translate(0, 0);
         }
-
         15% {
             transform: translate(-4px, 2px);
         }
-
         30% {
             transform: translate(4px, -2px);
         }
-
         45% {
             transform: translate(-3px, -1px);
         }
-
         60% {
             transform: translate(3px, 2px);
         }
-
         75% {
             transform: translate(-1px, -1px);
         }
-
         90% {
             transform: translate(1px, 1px);
         }
-
         100% {
             transform: translate(0, 0);
         }
@@ -358,27 +345,22 @@ if (!empty($player_data)) {
             transform: translate(-50%, -50%) scaleX(0);
             opacity: 0;
         }
-
         15% {
             transform: translate(-50%, -50%) scaleX(1.1);
             opacity: 1;
         }
-
         20% {
             transform: translate(-50%, -50%) scaleX(1);
         }
-
         80% {
             transform: translate(-50%, -50%) scaleX(1);
             opacity: 1;
             filter: brightness(1);
         }
-
         95% {
             transform: translate(-50%, -50%) scaleX(1.05);
             opacity: 0.5;
         }
-
         100% {
             transform: translate(-50%, -50%) scaleX(0);
             opacity: 0;
@@ -391,16 +373,13 @@ if (!empty($player_data)) {
             transform: scale(1.3) translate(-10px, 0);
             filter: saturate(0.5);
         }
-
         20% {
             transform: scale(1.1) translate(0, 0);
             filter: saturate(1.2);
         }
-
         80% {
             transform: scale(1.1) translate(5px, 0);
         }
-
         100% {
             transform: scale(1.4) translate(20px, 0);
         }
@@ -430,20 +409,18 @@ if (!empty($player_data)) {
     }
 
     .turn-card.active-unit-highlight {
-        border-color: #ff9d41 !important;
-        box-shadow: 0 0 10px rgba(255, 157, 65, 0.6);
-        transform: scale(1.02);
+        border-color: #5A3A2A !important;
+        box-shadow: none;
+        transform: none;
     }
 
     .active-player-stage-glow {
-        outline: 4px solid #ff9d41 !important;
-        outline-offset: 2px;
-        box-shadow: 0 0 15px 4px rgba(255, 157, 65, 0.6) !important;
+        box-shadow: none !important;
         border-radius: 4px;
     }
 
     .active-turn-scale {
-        transform: scale(1.04) !important;
+        transform: scale(1) !important;
         z-index: 10;
     }
 
@@ -555,12 +532,9 @@ if (!empty($player_data)) {
     <div class="d-flex flex-column justify-content-between h-100 p-3" style="user-select: none;">
         <div class="damage-popup text-danger fw-bold position-absolute d-none fs-2" id="player-damage-pop" style="z-index: 99; top: 25%; left: 15%; text-shadow: 2px 2px 0px #000;"> -0 </div>
 
-        <!-- FIELD REFACTOR: Large healthbar is now structurally placed directly inside the field's top confines -->
-        <!-- FIELD REFACTOR: Large healthbar is now structurally placed directly inside the field's top confines -->
         <div class="battle-stage d-flex flex-column align-items-center justify-content-start mb-3 p-3 position-relative"
-            style="height: 480px; min-height: 480px; background-image: radial-gradient(circle, #b4694000 60%, #b4694065 90%), url('../../../asset/img/background/plains1.png'); background-size: cover; background-position: center; background-repeat: no-repeat; background-color:#FAC79B; border-radius: 12px; border: 4px solid #8B5A3C;">
+            style="height: 540px; min-height: 540px; background-image: radial-gradient(circle, #b4694000 60%, #b4694065 90%), url('../../../asset/img/background/plains1.png'); background-size: cover; background-position: center; background-repeat: no-repeat; background-color:#FAC79B; border-radius: 12px; border: 4px solid #8B5A3C;">
 
-            <!-- IMMERSIVE INSIDE-FIELD STATIC BOSS HP HUD PANEL WITH INTEGRATED STATUS EFFECTS -->
             <?php if (!empty($active_enemies)): 
                 $topEnemy = $active_enemies[0]; 
             ?>
@@ -588,8 +562,7 @@ if (!empty($player_data)) {
             </div>
             <?php endif; ?>
 
-            <!-- FIELD ACTORS ROW CONTAINER -->
-            <div class="enemy-party d-flex gap-4 align-items-end justify-content-center w-100 mt-auto" style="height: 320px;">
+            <div class="enemy-party d-flex gap-4 align-items-end justify-content-center w-100 mt-auto" style="height: 380px;">
                 <?php if (!empty($active_enemies)): ?>
                     <?php foreach ($active_enemies as $index => $enemy):
                         $enemyUniqueId = $enemy['id'];
@@ -601,7 +574,7 @@ if (!empty($player_data)) {
                             <div class="damage-popup text-warning fw-bold position-absolute top-0 start-50 translate-middle fs-2 d-none" id="enemy-damage-<?= $enemyUniqueId ?>" style="z-index: 99; text-shadow: 2px 2px 0px #000;">-0</div>
 
                             <?php if (!empty($enemy['boss_sprite'])): ?>
-                                <div class="d-flex align-items-end justify-content-center w-100 h-100" style="max-height: 260px; overflow: visible;">
+                                <div class="d-flex align-items-end justify-content-center w-100 h-100" style="max-height: 320px; overflow: visible;">
                                     <img src="../../../asset/sprites/bosses/<?= htmlspecialchars($enemy['boss_sprite']) ?>"
                                         class="enemy-sprite enemy-hover-float item-rendering-pixelated"
                                         style="max-height: 100%; max-width: 100%; object-fit: contain; filter: drop-shadow(0px 8px 4px rgba(0,0,0,0.25)); transition: transform 0.2s ease;"
@@ -665,7 +638,9 @@ if (!empty($player_data)) {
                                 <?php foreach ($active_enemies as $enemy): ?>
                                     <button type="button" class="btn flex-grow-1 enemy-target-btn fw-bold py-2"
                                         id="list-target-btn-<?= $enemy['id'] ?>"
-                                        style="background-color: #B46940; color: white; border: 2px solid #8B4513; border-radius: 8px; text-align: left; font-size: 0.85rem;"
+                                        style="background-color: #B46940; color: white; border: 2px solid #8B4513; border-radius: 8px; text-align: center; font-size: 0.85rem;"
+                                        <?= !$enemy['alive'] ? 'disabled' : '' ?>
+                                        onmouseenter="if(!this.disabled) playSFX('hover')"
                                         onclick="selectEnemyTarget(<?= intval($enemy['id'] ?? 0) ?>)">
                                         🎯 <?= htmlspecialchars($enemy['name']) ?> <small style="opacity: 0.85;">(HP: <span id="list-hp-<?= $enemy['id'] ?>"><?= intval($enemy['hp'] ?? 0) ?></span>/<?= intval($enemy['max_hp'] ?? 0) ?>)</small>
                                     </button>
@@ -929,13 +904,13 @@ if (!empty($player_data)) {
             const currentImg = combatant.type === 'boss' ? (combatant.boss_sprite ?? combatant.sprite) : combatant.sprite;
 
             htmlContent += `
-                <div class="turn-card p-2 d-flex align-items-center gap-2 ${isActive ? 'active-unit-highlight' : ''}" 
-                     style="background-color: ${bgColor}; color: white;">
+                <div class="turn-card p-2 d-flex align-items-center gap-2" 
+                     style="background-color: ${bgColor}; color: white; border-color: #5A3A2A;">
                     <div style="width: 35px; height: 35px; border-radius: 4px; overflow: hidden; background-color: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.25);">
                         <img src="../../../asset/sprites/${spriteFolder}${currentImg}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.src='https://placehold.co/35x35?text=?';">
                     </div>
                     <div class="flex-grow-1" style="line-height: 1.1;">
-                        <div class="fw-bold" style="font-size: 0.85rem;">${combatant.name} ${isActive ? '👑' : ''}</div>
+                        <div class="fw-bold" style="font-size: 0.85rem;">${combatant.name}</div>
                         <small style="font-size: 0.72rem; opacity: 0.85;">HP: ${currentHp}/${maxHp} | ⚡ DEX: ${combatant.dex}</small>
                     </div>
                 </div>
@@ -1008,18 +983,12 @@ if (!empty($player_data)) {
         if (deck) deck.classList.remove('active-player-stage-glow');
         if (bossHud) {
             bossHud.style.outline = 'none';
+            bossHud.style.boxShadow = 'none';
         }
 
         if (activeUnit.type === 'boss') {
             const targetEl = document.getElementById(`enemy-target-${activeUnit.id}`);
             if (targetEl) targetEl.classList.add('active-turn-scale');
-            if (bossHud) {
-                bossHud.style.outline = '3px solid #ff9d41';
-                bossHud.style.boxShadow = '0 0 15px rgba(255, 157, 65, 0.6)';
-
-            }
-        } else {
-            if (deck) deck.classList.add('active-player-stage-glow');
         }
     }
 
@@ -1176,7 +1145,7 @@ if (!empty($player_data)) {
 
         if (element) {
             element.style.opacity = '1';
-            element.style.boxShadow = '0 0 10px #ff9d41';
+            element.style.boxShadow = 'none';
         }
 
         const area = String(skill.skill_area || 'enemy').toLowerCase();
